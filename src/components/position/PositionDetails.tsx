@@ -1,8 +1,13 @@
 import { usePositions } from '@/context/PositionContext';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
 import { formatNumber, formatDate, formatPrice, formatTokenAmount } from '@/lib/utils';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { AdjustPositionModal } from './AdjustPositionModal';
+import { PositionHealthPanel } from './PositionHealthPanel';
+import { PositionHealthMonitor } from '@/lib/saros/position-health';
+import { AutomationControls } from './AutomationControls';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+import { LoadingState, LoadingSkeleton } from '../common/LoadingStates';
 
 interface PositionDetailsProps {
     positionId: string;
@@ -12,6 +17,8 @@ interface PositionDetailsProps {
 export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
     const { positions, positionMetrics } = usePositions();
     const [isAdjusting, setIsAdjusting] = useState(false);
+    const [showAutomation, setShowAutomation] = useState(false);
+    const healthMonitor = useMemo(() => new PositionHealthMonitor(), []);
 
     const position = useMemo(() => 
         positions.find(p => p.address.toString() === positionId),
@@ -23,24 +30,25 @@ export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
         [position, positionMetrics, positionId]
     );
 
+    const health = useMemo(() => 
+        position && metrics ? healthMonitor.calculateHealth(position, metrics) : null,
+        [position, metrics, healthMonitor]
+    );
+
     if (!position || !metrics) {
         return (
-            <div className="p-4 text-center">
-                <div className="text-gray-500">Position not found</div>
-                <button
-                    onClick={onClose}
-                    className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
-                >
-                    Close
-                </button>
-            </div>
+            <LoadingSkeleton className="p-4">
+                <div className="text-gray-500">Loading position details...</div>
+            </LoadingSkeleton>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-xl max-w-2xl mx-auto">
-            <div className="p-6">
-                <div className="flex justify-between items-start">
+        <ErrorBoundary>
+            <LoadingState isLoading={!position || !metrics}>
+                <div className="bg-white rounded-lg shadow-xl max-w-2xl mx-auto">
+                    <div className="p-6">
+                        <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-2xl font-semibold">
                             Position #{positionId.slice(0, 8)}
@@ -174,6 +182,9 @@ export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
                     </div>
                 </div>
 
+                {/* Health Panel */}
+                {health && <PositionHealthPanel health={health} />}
+
                 {/* Action Buttons */}
                 <div className="mt-8 flex space-x-4">
                     <button
@@ -183,10 +194,10 @@ export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
                         Adjust Position
                     </button>
                     <button
-                        onClick={() => setIsAdjusting(true)} // We'll use the same modal for now
-                        className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        onClick={() => setShowAutomation(true)}
+                        className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
                     >
-                        Remove Liquidity
+                        Automation Settings
                     </button>
                 </div>
             </div>
@@ -197,6 +208,14 @@ export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
                     position={position}
                     metrics={metrics}
                     onClose={() => setIsAdjusting(false)}
+                />
+            )}
+
+            {/* Automation Controls Modal */}
+            {showAutomation && (
+                <AutomationControls
+                    positionId={positionId}
+                    onClose={() => setShowAutomation(false)}
                 />
             )}
         </div>

@@ -4,6 +4,9 @@ import { PositionManager } from '@/lib/saros/position-manager';
 import { SarosDLMMService } from '@/lib/saros/dlmm-service';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
 import { SOLANA_RPC_ENDPOINT } from '@/lib/saros/config';
+import { AutomationManager } from '@/lib/saros/automation/manager';
+import { RebalancingStrategy } from '@/lib/saros/automation/strategy';
+import { PriceFeedService, PriceData } from '@/lib/saros/price-feed';
 
 interface PositionContextType {
     positions: IDLMMPosition[];
@@ -13,6 +16,9 @@ interface PositionContextType {
     refreshPositions: () => Promise<void>;
     createPosition: (params: CreatePositionParams) => Promise<string | null>;
     adjustPosition: (params: AdjustPositionParams) => Promise<boolean>;
+    automationManager: AutomationManager;
+    priceFeedService: PriceFeedService;
+    tokenPrices: Map<string, PriceData>;
 }
 
 interface CreatePositionParams {
@@ -44,6 +50,14 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     const connection = new Connection(SOLANA_RPC_ENDPOINT);
     const dlmmService = new SarosDLMMService(connection);
     const positionManager = new PositionManager(dlmmService);
+    
+    // Initialize services
+    const automationManager = new AutomationManager();
+    const rebalancingStrategy = new RebalancingStrategy();
+    automationManager.registerStrategy(rebalancingStrategy);
+
+    const priceFeedService = new PriceFeedService();
+    const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
 
     const refreshPositions = async () => {
         try {
@@ -115,6 +129,9 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 refreshPositions,
                 createPosition,
                 adjustPosition,
+                automationManager,
+                priceFeedService,
+                tokenPrices,
             }}
         >
             {children}
