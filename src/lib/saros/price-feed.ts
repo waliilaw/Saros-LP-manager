@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import { SOLANA_RPC_ENDPOINT } from '../config';
+import { SOLANA_RPC_ENDPOINT } from './config';
 
 export interface PriceData {
     price: number;

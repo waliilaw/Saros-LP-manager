@@ -7,9 +7,9 @@ export const connection = new Connection(SOLANA_RPC_ENDPOINT);
 
 // Saros DLMM Constants
 export const SAROS_PROGRAM_ID = process.env.NEXT_PUBLIC_SAROS_PROGRAM_ID;
+export const DEFAULT_BIN_STEP = 100; // Will need to be adjusted based on Saros documentation
 
 // Position Management Constants
-export const DEFAULT_BIN_STEP = 100; // Will need to be adjusted based on Saros documentation
 export const MIN_BIN_ID = 0;
 export const MAX_BIN_ID = 800000;
 

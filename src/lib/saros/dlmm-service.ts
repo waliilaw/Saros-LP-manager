@@ -1,135 +1,194 @@
-import { Program, Provider, web3 } from '@project-serum/anchor';
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
-import { SAROS_PROGRAM_ID, DEFAULT_BIN_STEP } from './config';
-import { IDLMMConfig, IDLMMPool, IDLMMPosition, IDLMMBin, IPositionMetrics } from './interfaces';
-import { parsePool, parsePosition } from './parsers';
+import { AnchorProvider as Provider } from "@project-serum/anchor";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { SAROS_PROGRAM_ID } from "./config";
+import { IDLMMConfig, IDLMMPool, IDLMMPosition, IPositionMetrics } from "./interfaces";
+import { parsePool, parsePosition } from "./parsers";
 
 export class SarosDLMMService {
     private connection: Connection;
     private programId: PublicKey;
+    private provider!: Provider;
 
-    constructor(connection: Connection) {
+    constructor(connection: Connection, provider: Provider) {
+        if (!provider.sendAndConfirm) {
+            throw new Error('Provider must be an AnchorProvider');
+        }
         this.connection = connection;
-        this.dlmm = new SarosDLMM(connection, new PublicKey(SAROS_PROGRAM_ID!));
+        this.provider = provider;
+        this.programId = new PublicKey(SAROS_PROGRAM_ID as string);
     }
 
-    async getPool(tokenA: string, tokenB?: string): Promise<IDLMMPool | null> {
-        try {
-            let poolAddress: PublicKey;
-            
-            if (tokenB) {
-                // Get pool by token pair
-                [poolAddress] = await PublicKey.findProgramAddress(
-                    [
-                        Buffer.from('pool'),
-                        new PublicKey(tokenA).toBuffer(),
-                        new PublicKey(tokenB).toBuffer()
-                    ],
-                    this.programId
-                );
-            } else {
-                // Get pool by pool address
-                poolAddress = new PublicKey(tokenA);
-            }
-
     async createPosition(
-        pool: DLMMLiquidityPool,
+        pool: IDLMMPool,
         lowerBinId: number,
         upperBinId: number,
-        amount: number,
-        isTokenA: boolean
-    ): Promise<string | null> {
+        amount: bigint,
+        isTokenX: boolean
+    ): Promise<string> {
         try {
-            const tx = await pool.createPosition({
-                lowerBinId,
-                upperBinId,
-                amount,
-                isTokenA,
-                binStep: DEFAULT_BIN_STEP
-            });
-
-            const signature = await tx.send();
-            await tx.confirm();
+            const tx = new Transaction();
+            // Add position creation instruction
+            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
             
+            const signature = await this.provider.sendAndConfirm(tx);
             return signature;
         } catch (error) {
             console.error('Error creating position:', error);
-            return null;
+            throw error;
         }
     }
 
-    async getPositionInfo(positionId: string): Promise<PositionInfo | null> {
+    async getPosition(address: PublicKey): Promise<IDLMMPosition> {
         try {
-            const position = await this.dlmm.getPosition(new PublicKey(positionId));
-            return position.getInfo();
+            const accountInfo = await this.connection.getAccountInfo(address);
+            if (!accountInfo) {
+                throw new Error('Position not found');
+            }
+
+            return parsePosition(accountInfo.data, address);
         } catch (error) {
-            console.error('Error fetching position info:', error);
-            return null;
+            console.error('Error fetching position:', error);
+            throw error;
         }
     }
 
-    async adjustPosition(
-        pool: DLMMLiquidityPool,
-        positionId: string,
-        newLowerBinId?: number,
-        newUpperBinId?: number,
-        addAmount?: number,
-        removeAmount?: number
-    ): Promise<boolean> {
+    async getPool(address: PublicKey): Promise<IDLMMPool> {
         try {
-            const position = await this.dlmm.getPosition(new PublicKey(positionId));
-            
-            if (addAmount) {
-                const tx = await pool.addLiquidity({
-                    position,
-                    amount: addAmount,
-                    isTokenA: true // TODO: Determine based on position
-                });
-                await tx.send();
-                await tx.confirm();
+            const accountInfo = await this.connection.getAccountInfo(address);
+            if (!accountInfo) {
+                throw new Error('Pool not found');
             }
 
-            if (removeAmount) {
-                const tx = await pool.removeLiquidity({
-                    position,
-                    amount: removeAmount,
-                    isTokenA: true // TODO: Determine based on position
-                });
-                await tx.send();
-                await tx.confirm();
-            }
-
-            if (newLowerBinId || newUpperBinId) {
-                // TODO: Implement range adjustment
-                const currentInfo = await position.getInfo();
-                // Need to remove liquidity from old range and add to new range
-            }
-
-            return true;
+            return parsePool(accountInfo.data, address);
         } catch (error) {
-            console.error('Error adjusting position:', error);
-            return false;
+            console.error('Error fetching pool:', error);
+            throw error;
         }
     }
 
-    async calculatePositionMetrics(positionId: string): Promise<{
-        impermanentLoss: number;
-        fees: number;
-        apy: number;
-    } | null> {
+    async addLiquidity(
+        position: IDLMMPosition,
+        amount: bigint,
+        isTokenX: boolean
+    ): Promise<string> {
         try {
-            const position = await this.dlmm.getPosition(new PublicKey(positionId));
-            const info = await position.getInfo();
+            const tx = new Transaction();
+            // Add liquidity addition instruction
+            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
             
-            // TODO: Implement actual calculations using Saros SDK data
+            const signature = await this.provider.sendAndConfirm(tx);
+            return signature;
+        } catch (error) {
+            console.error('Error adding liquidity:', error);
+            throw error;
+        }
+    }
+
+    async removeLiquidity(
+        position: IDLMMPosition,
+        amount: bigint,
+        isTokenX: boolean
+    ): Promise<string> {
+        try {
+            const tx = new Transaction();
+            // Add liquidity removal instruction
+            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
+            
+            const signature = await this.provider.sendAndConfirm(tx);
+            return signature;
+        } catch (error) {
+            console.error('Error removing liquidity:', error);
+            throw error;
+        }
+    }
+
+    async adjustPositionRange(
+        position: IDLMMPosition,
+        newLowerBinId: number,
+        newUpperBinId: number
+    ): Promise<string> {
+        try {
+            const tx = new Transaction();
+            // Add range adjustment instruction
+            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
+            
+            const signature = await this.provider.sendAndConfirm(tx);
+            return signature;
+        } catch (error) {
+            console.error('Error adjusting position range:', error);
+            throw error;
+        }
+    }
+
+    async getPositionMetrics(position: IDLMMPosition): Promise<IPositionMetrics> {
+        try {
+            const pool = await this.getPool(position.pool);
+            
+            const tvl = this.calculateTVL(position);
+            const apr = await this.calculateAPR(position, pool);
+            const priceRange = this.calculatePriceRange(position, pool);
+            const binUtilization = this.calculateBinUtilization(position);
+            const { volumeLast24h, feesLast24h } = await this.getVolumeAndFees(pool);
+            const impermanentLoss = this.calculateImpermanentLoss(position, pool);
+
             return {
-                impermanentLoss: 0,
-                fees: 0,
-                apy: 0
+                totalValueLocked: tvl,
+                apr,
+                priceRange,
+                impermanentLoss,
+                volumeLast24h,
+                feesLast24h,
+                binUtilization
             };
         } catch (error) {
             console.error('Error calculating position metrics:', error);
-            return null;
+            throw error;
         }
+    }
+
+    private calculateTVL(position: IDLMMPosition): number {
+        return Number(position.tokenXDeposited) + Number(position.tokenYDeposited);
+    }
+
+    private async calculateAPR(position: IDLMMPosition, pool: IDLMMPool): Promise<number> {
+        const fees24h = Number(position.feesEarnedX) + Number(position.feesEarnedY);
+        const tvl = this.calculateTVL(position);
+        return (fees24h * 365 * 100) / tvl;
+    }
+
+    private calculatePriceRange(position: IDLMMPosition, pool: IDLMMPool) {
+        const currentPrice = pool.reserveX ? Number(pool.reserveY) / Number(pool.reserveX) : 0;
+        return {
+            min: Math.max(0, currentPrice * 0.8), // 20% below current
+            current: currentPrice,
+            max: currentPrice * 1.2 // 20% above current
+        };
+    }
+
+    private calculateBinUtilization(position: IDLMMPosition): number {
+        const binRange = position.upperBinId - position.lowerBinId;
+        const activeBins = position.liquidityShares.filter(share => share > BigInt(0)).length;
+        return (activeBins / binRange) * 100;
+    }
+
+    private async getVolumeAndFees(pool: IDLMMPool) {
+        // Note: This is a placeholder. Actual implementation would fetch historical data
+        return {
+            volumeLast24h: Number(pool.reserveX) + Number(pool.reserveY),
+            feesLast24h: Number(pool.feesX) + Number(pool.feesY)
+        };
+    }
+
+    private calculateImpermanentLoss(position: IDLMMPosition, pool: IDLMMPool): number {
+        const currentPrice = pool.reserveX ? Number(pool.reserveY) / Number(pool.reserveX) : 0;
+        const initialPrice = position.tokenYDeposited ? 
+            Number(position.tokenYDeposited) / Number(position.tokenXDeposited) : 
+            currentPrice;
+        
+        if (currentPrice === 0 || initialPrice === 0) return 0;
+        
+        const priceRatio = currentPrice / initialPrice;
+        const il = 2 * Math.sqrt(priceRatio) / (1 + priceRatio) - 1;
+        return Math.abs(il * 100);
     }
 }

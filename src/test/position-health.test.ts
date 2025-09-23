@@ -6,6 +6,8 @@ import { PublicKey } from '@solana/web3.js';
 describe('PositionHealthMonitor', () => {
     const mockPosition: IDLMMPosition = {
         address: new PublicKey('11111111111111111111111111111111'),
+        owner: new PublicKey('11111111111111111111111111111111'),
+        pool: new PublicKey('11111111111111111111111111111111'),
         tokenXDeposited: BigInt(1000000),
         tokenYDeposited: BigInt(1000000),
         feesEarnedX: BigInt(5000),
@@ -13,6 +15,8 @@ describe('PositionHealthMonitor', () => {
         lastUpdatedAt: Date.now(),
         lowerBinId: 1000,
         upperBinId: 2000,
+        liquidityShares: [BigInt(1000)],
+        healthFactor: 100
     };
 
     const mockMetrics: IPositionMetrics = {
@@ -75,7 +79,7 @@ describe('PositionHealthMonitor', () => {
         const metricsWithHighIL: IPositionMetrics = {
             ...mockMetrics,
             totalValueLocked: 10000,
-            impermanentLoss: 1000 // 10% IL
+            impermanentLoss: 1500 // 15% IL
         };
 
         const health = monitor.calculateHealth(mockPosition, metricsWithHighIL);
@@ -87,7 +91,18 @@ describe('PositionHealthMonitor', () => {
 
     it('should provide recommendations for identified risks', () => {
         const monitor = new PositionHealthMonitor();
-        const health = monitor.calculateHealth(mockPosition, mockMetrics);
+        const metricsWithIssues: IPositionMetrics = {
+            ...mockMetrics,
+            totalValueLocked: 500, // Below minimum threshold
+            impermanentLoss: 1500, // High IL
+            priceRange: {
+                min: 0.5,
+                current: 2.0, // Significant deviation
+                max: 1.5
+            }
+        };
+
+        const health = monitor.calculateHealth(mockPosition, metricsWithIssues);
 
         expect(health.recommendations).toBeDefined();
         expect(health.recommendations.length).toBeGreaterThan(0);

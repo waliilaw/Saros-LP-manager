@@ -46,7 +46,7 @@ export class RebalancingStrategy implements AutomationStrategy {
             // Add liquidity when utilization is too high
             condition: (_, metrics) => metrics.binUtilization > 90,
             action: async (position) => {
-                const additionalLiquidity = position.tokenXDeposited * 0.2; // Add 20% more liquidity
+                const additionalLiquidity = (position.tokenXDeposited * BigInt(20)) / BigInt(100); // Add 20% more liquidity
                 await this.addLiquidity(position, additionalLiquidity);
             },
             description: 'Add liquidity when utilization is high'
@@ -58,7 +58,7 @@ export class RebalancingStrategy implements AutomationStrategy {
                 return ilWarning?.severity === 'HIGH';
             },
             action: async (position) => {
-                const reductionAmount = position.tokenXDeposited * 0.3; // Reduce by 30%
+                const reductionAmount = (position.tokenXDeposited * BigInt(30)) / BigInt(100); // Reduce by 30%
                 await this.removeLiquidity(position, reductionAmount);
             },
             description: 'Reduce exposure when IL risk is high'
@@ -92,7 +92,7 @@ export class RebalancingStrategy implements AutomationStrategy {
 
     private async addLiquidity(
         position: IDLMMPosition,
-        amount: number
+        amount: bigint
     ): Promise<void> {
         // Implementation will use the SDK to add liquidity
         // This is a placeholder for the actual SDK implementation
@@ -104,13 +104,13 @@ export class RebalancingStrategy implements AutomationStrategy {
 
     private async removeLiquidity(
         position: IDLMMPosition,
-        amount: number
+        amount: bigint
     ): Promise<void> {
         // Implementation will use the SDK to remove liquidity
         // This is a placeholder for the actual SDK implementation
         console.log('Removing liquidity:', {
             positionId: position.address.toString(),
-            amount
+            amount: amount.toString()
         });
     }
 }

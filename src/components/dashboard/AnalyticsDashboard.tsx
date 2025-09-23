@@ -1,3 +1,6 @@
+'use client'
+
+
 import { useMemo, useState } from 'react';
 import { usePositions } from '@/context/PositionContext';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';

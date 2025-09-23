@@ -35,7 +35,9 @@ export class PositionHealthMonitor {
         const priceDeviation = this.checkPriceRangeDeviation(metrics);
         if (priceDeviation.warning) {
             warnings.push(priceDeviation.warning);
-            recommendations.push(priceDeviation.recommendation);
+            if (priceDeviation.recommendation) {
+                recommendations.push(priceDeviation.recommendation);
+            }
             
             if (priceDeviation.warning.severity === 'HIGH') {
                 notificationManager.addNotification({
@@ -45,26 +47,33 @@ export class PositionHealthMonitor {
                     positionId: position.address.toString()
                 });
             }
+        }
 
         // Check liquidity levels
         const liquidity = this.checkLiquidityLevels(metrics);
         if (liquidity.warning) {
             warnings.push(liquidity.warning);
-            recommendations.push(liquidity.recommendation);
+            if (liquidity.recommendation) {
+                recommendations.push(liquidity.recommendation);
+            }
         }
 
         // Check impermanent loss risk
         const ilRisk = this.checkImpermanentLossRisk(metrics);
         if (ilRisk.warning) {
             warnings.push(ilRisk.warning);
-            recommendations.push(ilRisk.recommendation);
+            if (ilRisk.recommendation) {
+                recommendations.push(ilRisk.recommendation);
+            }
         }
 
         // Check performance
         const performance = this.checkPerformance(metrics);
         if (performance.warning) {
             warnings.push(performance.warning);
-            recommendations.push(performance.recommendation);
+            if (performance.recommendation) {
+                recommendations.push(performance.recommendation);
+            }
         }
 
         // Calculate overall health score
@@ -101,13 +110,13 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkLiquidityLevels(metrics: IPositionMetrics) {
+    private checkLiquidityLevels(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
         if (metrics.totalValueLocked < this.MIN_LIQUIDITY_THRESHOLD) {
             return {
                 warning: {
-                    type: 'LOW_LIQUIDITY' as const,
+                    type: 'LOW_LIQUIDITY',
                     message: 'Position liquidity is below recommended minimum',
-                    severity: 'MEDIUM'
+                    severity: metrics.totalValueLocked < this.MIN_LIQUIDITY_THRESHOLD / 2 ? 'HIGH' : 'MEDIUM'
                 },
                 recommendation: 'Consider adding more liquidity to improve position efficiency'
             };
@@ -116,15 +125,16 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkImpermanentLossRisk(metrics: IPositionMetrics) {
+    private checkImpermanentLossRisk(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
         const ilPercentage = (metrics.impermanentLoss / metrics.totalValueLocked) * 100;
 
         if (ilPercentage > this.IL_THRESHOLD) {
+            const severity: 'LOW' | 'MEDIUM' | 'HIGH' = ilPercentage > 10 ? 'HIGH' : 'MEDIUM';
             return {
                 warning: {
-                    type: 'HIGH_IL_RISK' as const,
+                    type: 'HIGH_IL_RISK',
                     message: `High impermanent loss risk (${ilPercentage.toFixed(2)}%)`,
-                    severity: ilPercentage > 10 ? 'HIGH' : 'MEDIUM'
+                    severity
                 },
                 recommendation: 'Consider adjusting position range or reducing exposure'
             };
@@ -133,16 +143,17 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkPerformance(metrics: IPositionMetrics) {
+    private checkPerformance(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
         const expectedDailyFees = metrics.totalValueLocked * (metrics.apr / 365 / 100);
         const actualDailyFees = metrics.feesLast24h;
 
         if (actualDailyFees < expectedDailyFees * 0.7) { // Underperforming by 30% or more
+            const severity: 'LOW' | 'MEDIUM' | 'HIGH' = actualDailyFees < expectedDailyFees * 0.5 ? 'HIGH' : 'MEDIUM';
             return {
                 warning: {
-                    type: 'UNDERPERFORMING' as const,
+                    type: 'UNDERPERFORMING',
                     message: 'Position is underperforming expected returns',
-                    severity: 'MEDIUM'
+                    severity
                 },
                 recommendation: 'Review position parameters and market conditions for optimization opportunities'
             };
