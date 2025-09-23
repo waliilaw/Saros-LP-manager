@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { AutomationStrategy } from '@/lib/saros/automation/strategy';
+import { IRebalancingStrategy } from '@/lib/saros/automation/strategy';
 import { usePositions } from '@/context/PositionContext';
 
+import { IDLMMPosition } from '@/lib/saros/interfaces';
+
 interface AutomationControlsProps {
-    positionId: string;
+    position: IDLMMPosition;
     onClose: () => void;
 }
 
-export function AutomationControls({ positionId, onClose }: AutomationControlsProps) {
+export function AutomationControls({ position, onClose }: AutomationControlsProps) {
+    const positionId = position.address.toString();
     const [activeStrategies, setActiveStrategies] = useState<Set<string>>(new Set());
     const { automationManager } = usePositions();
 
@@ -41,7 +44,7 @@ export function AutomationControls({ positionId, onClose }: AutomationControlsPr
             </div>
 
             <div className="space-y-4">
-                {Array.from(automationManager.strategies.values()).map((strategy: AutomationStrategy) => (
+                {Array.from(automationManager.strategies.values()).map((strategy: IRebalancingStrategy) => (
                     <div
                         key={strategy.id}
                         className="p-4 bg-gray-50 rounded-lg"

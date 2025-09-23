@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { PositionManager } from '@/lib/saros/position-manager';
 import { SarosDLMMService } from '@/lib/saros/dlmm-service';
@@ -47,77 +47,113 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     // Initialize services
-    const connection = new Connection(SOLANA_RPC_ENDPOINT);
-    const dlmmService = new SarosDLMMService(connection);
-    const positionManager = new PositionManager(dlmmService);
+    const connection = useMemo(() => new Connection(SOLANA_RPC_ENDPOINT), []);
+    const dlmmService = useMemo(() => new SarosDLMMService(connection), [connection]);
+    const positionManager = useMemo(() => new PositionManager(dlmmService), [dlmmService]);
     
     // Initialize services
-    const automationManager = new AutomationManager();
-    const rebalancingStrategy = new RebalancingStrategy();
-    automationManager.registerStrategy(rebalancingStrategy);
+    const rebalancingStrategy = useMemo(() => new RebalancingStrategy(dlmmService), [dlmmService]);
+    const automationManager = useMemo(() => {
+        const manager = new AutomationManager();
+        manager.registerStrategy(rebalancingStrategy);
+        return manager;
+    }, [rebalancingStrategy]);
 
-    const priceFeedService = new PriceFeedService();
+    const priceFeedService = useMemo(() => new PriceFeedService(), []);
     const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
 
-    const refreshPositions = async () => {
+    const refreshPositions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
             
-            // In a real implementation, we would fetch user's positions
-            // This is a placeholder for demo purposes
-            const demoPositions: IDLMMPosition[] = [];
+            // Fetch user's positions from the DLMM service
+            const userPositions = await dlmmService.getUserPositions();
             const metrics = new Map<string, IPositionMetrics>();
 
-            for (const position of demoPositions) {
-                const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
-                if (positionMetrics) {
-                    metrics.set(position.address.toString(), positionMetrics);
+            for (const position of userPositions) {
+                try {
+                    const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
+                    if (positionMetrics) {
+                        metrics.set(position.address.toString(), positionMetrics);
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
+                    // Continue with other positions even if one fails
                 }
             }
 
-            setPositions(demoPositions);
+            setPositions(userPositions);
             setPositionMetrics(metrics);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch positions');
         } finally {
             setLoading(false);
         }
-    };
+    }, [dlmmService, positionManager]);
 
-    const createPosition = async (params: CreatePositionParams): Promise<string | null> => {
+    const createPosition = useCallback(async (params: CreatePositionParams): Promise<string | null> => {
         try {
             setLoading(true);
             setError(null);
 
-            // Implementation needed - integrate with wallet and transaction signing
-            return null;
+            const position = await dlmmService.createPosition({
+                tokenA: params.tokenA,
+                tokenB: params.tokenB,
+                lowerBinId: params.lowerBinId,
+                upperBinId: params.upperBinId,
+                amount: params.amount,
+                isTokenA: params.isTokenA
+            });
+
+            if (!position) {
+                throw new Error('Failed to create position');
+            }
+
+            await refreshPositions();
+            return position.address.toString();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create position');
             return null;
         } finally {
             setLoading(false);
         }
-    };
+    }, [dlmmService, refreshPositions]);
 
-    const adjustPosition = async (params: AdjustPositionParams): Promise<boolean> => {
+    const adjustPosition = useCallback(async (params: AdjustPositionParams): Promise<boolean> => {
         try {
             setLoading(true);
             setError(null);
 
-            // Implementation needed - integrate with wallet and transaction signing
-            return false;
+            const position = positions.find(p => p.address.toString() === params.positionId);
+            if (!position) {
+                throw new Error('Position not found');
+            }
+
+            const success = await dlmmService.adjustPosition({
+                position,
+                newLowerBinId: params.newLowerBinId,
+                newUpperBinId: params.newUpperBinId,
+                addAmount: params.addAmount,
+                removeAmount: params.removeAmount
+            });
+
+            if (success) {
+                await refreshPositions();
+            }
+
+            return success;
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to adjust position');
             return false;
         } finally {
             setLoading(false);
         }
-    };
+    }, [dlmmService, positions, refreshPositions]);
 
     useEffect(() => {
         refreshPositions();
-    }, []);
+    }, [refreshPositions]);
 
     return (
         <PositionContext.Provider

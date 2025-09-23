@@ -1,7 +1,7 @@
 import { AnchorProvider as Provider } from "@project-serum/anchor";
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { SAROS_PROGRAM_ID } from "./config";
-import { IDLMMConfig, IDLMMPool, IDLMMPosition, IPositionMetrics } from "./interfaces";
+import { IDLMMPool, IDLMMPosition, IPositionMetrics } from "./interfaces";
 import { parsePool, parsePosition } from "./parsers";
 
 export class SarosDLMMService {
@@ -9,33 +9,68 @@ export class SarosDLMMService {
     private programId: PublicKey;
     private provider!: Provider;
 
-    constructor(connection: Connection, provider: Provider) {
-        if (!provider.sendAndConfirm) {
-            throw new Error('Provider must be an AnchorProvider');
-        }
+    constructor(connection: Connection, provider?: Provider) {
         this.connection = connection;
-        this.provider = provider;
+        if (provider) {
+            if (!provider.sendAndConfirm) {
+                throw new Error('Provider must be an AnchorProvider');
+            }
+            this.provider = provider;
+        }
         this.programId = new PublicKey(SAROS_PROGRAM_ID as string);
     }
 
-    async createPosition(
-        pool: IDLMMPool,
-        lowerBinId: number,
-        upperBinId: number,
-        amount: bigint,
-        isTokenX: boolean
-    ): Promise<string> {
+    async createPosition(params: {
+        tokenA: string;
+        tokenB: string;
+        lowerBinId: number;
+        upperBinId: number;
+        amount: number;
+        isTokenA: boolean;
+    }): Promise<IDLMMPosition> {
         try {
             const tx = new Transaction();
-            // Add position creation instruction
-            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
-            
-            const signature = await this.provider.sendAndConfirm(tx);
-            return signature;
+            // TODO: Implement position creation with Saros SDK
+            // Construct instruction data
+            // For demo purposes, return a mock position
+            return {
+                address: new PublicKey('11111111111111111111111111111111'),
+                owner: new PublicKey('11111111111111111111111111111111'),
+                pool: new PublicKey('11111111111111111111111111111111'),
+                tokenXDeposited: BigInt(params.amount),
+                tokenYDeposited: BigInt(0),
+                feesEarnedX: BigInt(0),
+                feesEarnedY: BigInt(0),
+                lastUpdatedAt: Date.now(),
+                lowerBinId: params.lowerBinId,
+                upperBinId: params.upperBinId,
+                liquidityShares: [BigInt(1000)],
+                healthFactor: 100
+            };
         } catch (error) {
             console.error('Error creating position:', error);
             throw error;
         }
+    }
+
+    async getUserPositions(): Promise<IDLMMPosition[]> {
+        // For demo purposes, return some mock positions
+        return [
+            {
+                address: new PublicKey('11111111111111111111111111111111'),
+                owner: new PublicKey('11111111111111111111111111111111'),
+                pool: new PublicKey('11111111111111111111111111111111'),
+                tokenXDeposited: BigInt(1000000),
+                tokenYDeposited: BigInt(1000000),
+                feesEarnedX: BigInt(5000),
+                feesEarnedY: BigInt(5000),
+                lastUpdatedAt: Date.now(),
+                lowerBinId: 1000,
+                upperBinId: 2000,
+                liquidityShares: [BigInt(1000)],
+                healthFactor: 100
+            }
+        ];
     }
 
     async getPosition(address: PublicKey): Promise<IDLMMPosition> {
@@ -73,8 +108,15 @@ export class SarosDLMMService {
     ): Promise<string> {
         try {
             const tx = new Transaction();
-            // Add liquidity addition instruction
-            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
+            // TODO: Implement liquidity addition with Saros SDK
+            // Construct instruction data
+            const data = {
+                position: position.address,
+                amount,
+                isTokenX,
+                pool: position.pool
+            };
+            console.log('Adding liquidity with data:', data);
             
             const signature = await this.provider.sendAndConfirm(tx);
             return signature;
@@ -91,8 +133,15 @@ export class SarosDLMMService {
     ): Promise<string> {
         try {
             const tx = new Transaction();
-            // Add liquidity removal instruction
-            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
+            // TODO: Implement liquidity removal with Saros SDK
+            // Construct instruction data
+            const data = {
+                position: position.address,
+                amount,
+                isTokenX,
+                pool: position.pool
+            };
+            console.log('Removing liquidity with data:', data);
             
             const signature = await this.provider.sendAndConfirm(tx);
             return signature;
@@ -102,18 +151,19 @@ export class SarosDLMMService {
         }
     }
 
-    async adjustPositionRange(
-        position: IDLMMPosition,
-        newLowerBinId: number,
-        newUpperBinId: number
-    ): Promise<string> {
+    async adjustPosition(params: {
+        position: IDLMMPosition;
+        newLowerBinId?: number;
+        newUpperBinId?: number;
+        addAmount?: number;
+        removeAmount?: number;
+    }): Promise<boolean> {
         try {
             const tx = new Transaction();
-            // Add range adjustment instruction
-            // Note: This is a placeholder. Actual instruction creation would use the Saros SDK
-            
-            const signature = await this.provider.sendAndConfirm(tx);
-            return signature;
+            // TODO: Implement range adjustment with Saros SDK
+            // Construct instruction data
+            // For demo purposes, always return success
+            return true;
         } catch (error) {
             console.error('Error adjusting position range:', error);
             throw error;
@@ -156,7 +206,7 @@ export class SarosDLMMService {
         return (fees24h * 365 * 100) / tvl;
     }
 
-    private calculatePriceRange(position: IDLMMPosition, pool: IDLMMPool) {
+    private calculatePriceRange(_position: IDLMMPosition, pool: IDLMMPool) {
         const currentPrice = pool.reserveX ? Number(pool.reserveY) / Number(pool.reserveX) : 0;
         return {
             min: Math.max(0, currentPrice * 0.8), // 20% below current

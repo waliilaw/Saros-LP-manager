@@ -1,7 +1,20 @@
-import { BufferLayout } from '@solana/buffer-layout';
+import * as BufferLayout from '@solana/buffer-layout';
 import { PublicKey } from '@solana/web3.js';
 
-export const POOL_LAYOUT = BufferLayout.struct([
+export const POOL_LAYOUT = BufferLayout.struct<{
+    version: number;
+    isInitialized: number;
+    reserveX: bigint;
+    reserveY: bigint;
+    activeId: number;
+    binStep: number;
+    totalLiquidity: bigint;
+    feeProtocol: number;
+    feesX: bigint;
+    feesY: bigint;
+    tokenX: Buffer;
+    tokenY: Buffer;
+}>([
     BufferLayout.u8('version'),
     BufferLayout.u8('isInitialized'),
     BufferLayout.ns64('reserveX'),
@@ -16,7 +29,19 @@ export const POOL_LAYOUT = BufferLayout.struct([
     BufferLayout.blob(32, 'tokenY')
 ]);
 
-export const POSITION_LAYOUT = BufferLayout.struct([
+export const POSITION_LAYOUT = BufferLayout.struct<{
+    version: number;
+    isInitialized: number;
+    lowerBinId: number;
+    upperBinId: number;
+    tokenXDeposited: bigint;
+    tokenYDeposited: bigint;
+    feesEarnedX: bigint;
+    feesEarnedY: bigint;
+    lastUpdatedAt: number;
+    owner: Buffer;
+    pool: Buffer;
+}>([
     BufferLayout.u8('version'),
     BufferLayout.u8('isInitialized'),
     BufferLayout.u32('lowerBinId'),

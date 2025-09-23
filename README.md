@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Saros LP Manager
+
+A comprehensive dashboard for managing Saros DLMM liquidity positions. This application provides real-time monitoring, analytics, and automation tools for liquidity providers.
+
+## Features
+
+- **Position Management**
+  - Create new liquidity positions
+  - Adjust position parameters (price range, liquidity)
+  - Monitor position health and performance
+  - Real-time metrics (TVL, APR, Volume, Fees)
+
+- **Automation Tools**
+  - Automated rebalancing based on market conditions
+  - Position health monitoring
+  - Customizable automation strategies
+
+- **Analytics Dashboard**
+  - Performance metrics visualization
+  - Historical data analysis
+  - Price range utilization tracking
+  - Fee earnings breakdown
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- npm or yarn
+- A Solana wallet (e.g., Phantom)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/saros-lp-manager.git
+cd saros-lp-manager
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create a `.env` file with your configuration:
+```env
+NEXT_PUBLIC_SOLANA_RPC_ENDPOINT=your_rpc_endpoint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+The application will be available at `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+### Building for Production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+The application is built with:
+- Next.js 15+ for the frontend framework
+- Saros DLMM SDK for liquidity pool interactions
+- TailwindCSS for styling
+- React Context for state management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Key components:
+- `PositionContext`: Central state management for positions
+- `PositionList`: Main component for displaying positions
+- `PositionDetails`: Detailed view of a single position
+- `AutomationControls`: Configuration for automated strategies
+- `AnalyticsDashboard`: Performance visualization
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Usage Guide
+
+1. **Connecting Your Wallet**
+   - Click "Connect Wallet" in the top right
+   - Select your Solana wallet provider
+   - Approve the connection
+
+2. **Creating a Position**
+   - Click "Create Position" button
+   - Select token pair
+   - Set price range and amount
+   - Confirm transaction in your wallet
+
+3. **Managing Positions**
+   - View all positions in the main dashboard
+   - Click "Details" to see full position metrics
+   - Use "Adjust" to modify position parameters
+   - Monitor health indicators for each position
+
+4. **Setting Up Automation**
+   - Navigate to a position's details
+   - Click "Automation Settings"
+   - Enable desired strategies
+   - Configure strategy parameters
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Saros DLMM SDK](https://github.com/saros-finance/dlmm-sdk)
+- Inspired by the Saros Finance ecosystem
+- Created for the Saros DeFi Bounty Program

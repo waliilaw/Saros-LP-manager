@@ -1,116 +1,82 @@
 import { IDLMMPosition, IPositionMetrics } from '../interfaces';
-import { PositionHealthMonitor, IHealthMetrics } from '../position-health';
+import { IHealthMetrics, PositionHealthMonitor } from '../position-health';
+import { SarosDLMMService } from '../dlmm-service';
 
-export interface AutomationStrategy {
-    readonly id: string;
-    readonly name: string;
-    readonly description: string;
-    checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
-}
-
-export interface AutomationRule {
-    condition: (position: IDLMMPosition, metrics: IPositionMetrics, health: IHealthMetrics) => boolean;
-    action: (position: IDLMMPosition, metrics: IPositionMetrics) => Promise<void>;
+export interface IRebalancingStrategy {
+    id: string;
+    name: string;
     description: string;
+    checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
+    adjustPositionRange(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
+    addLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
+    removeLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
 }
 
-export class RebalancingStrategy implements AutomationStrategy {
-    readonly id = 'auto-rebalance';
-    readonly name = 'Auto Rebalancing';
-    readonly description = 'Automatically rebalances position based on price movements and market conditions';
+export class RebalancingStrategy implements IRebalancingStrategy {
+    private healthMonitor: PositionHealthMonitor;
+    private dlmmService: SarosDLMMService;
+    public readonly id = 'auto-rebalance';
+    public readonly name = 'Auto Rebalancing';
+    public readonly description = 'Automatically rebalances positions based on market conditions';
 
-    private readonly healthMonitor: PositionHealthMonitor;
-
-    constructor() {
+    constructor(dlmmService: SarosDLMMService) {
         this.healthMonitor = new PositionHealthMonitor();
+        this.dlmmService = dlmmService;
     }
 
-    private rules: AutomationRule[] = [
-        {
-            // Rebalance when price moves significantly out of range
-            condition: (position, metrics, health) => {
-                const priceWarning = health.warnings.find(w => w.type === 'PRICE_RANGE_DEVIATION');
-                return priceWarning?.severity === 'HIGH';
-            },
-            action: async (position, metrics) => {
-                const currentPrice = metrics.priceRange.current;
-                const spread = 0.1; // 10% spread around current price
-                const newLowerBinId = Math.floor(currentPrice * (1 - spread));
-                const newUpperBinId = Math.ceil(currentPrice * (1 + spread));
-                
-                await this.adjustPositionRange(position, newLowerBinId, newUpperBinId);
-            },
-            description: 'Rebalance position range around current price'
-        },
-        {
-            // Add liquidity when utilization is too high
-            condition: (_, metrics) => metrics.binUtilization > 90,
-            action: async (position) => {
-                const additionalLiquidity = (position.tokenXDeposited * BigInt(20)) / BigInt(100); // Add 20% more liquidity
-                await this.addLiquidity(position, additionalLiquidity);
-            },
-            description: 'Add liquidity when utilization is high'
-        },
-        {
-            // Reduce exposure when IL is too high
-            condition: (_, metrics, health) => {
-                const ilWarning = health.warnings.find(w => w.type === 'HIGH_IL_RISK');
-                return ilWarning?.severity === 'HIGH';
-            },
-            action: async (position) => {
-                const reductionAmount = (position.tokenXDeposited * BigInt(30)) / BigInt(100); // Reduce by 30%
-                await this.removeLiquidity(position, reductionAmount);
-            },
-            description: 'Reduce exposure when IL risk is high'
-        }
-    ];
+    public async checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+        const health = await this.healthMonitor.calculateHealth(position, metrics);
 
-    async checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const health = this.healthMonitor.calculateHealth(position, metrics);
-        
-        for (const rule of this.rules) {
-            if (rule.condition(position, metrics, health)) {
-                console.log(`Executing automation rule: ${rule.description}`);
-                await rule.action(position, metrics);
-            }
+        if (this.shouldAdjustRange(health)) {
+            await this.adjustPositionRange(position, metrics);
+        }
+
+        if (this.shouldAddLiquidity(metrics)) {
+            await this.addLiquidity(position, metrics);
+        }
+
+        if (this.shouldRemoveLiquidity(health)) {
+            await this.removeLiquidity(position, metrics);
         }
     }
 
-    private async adjustPositionRange(
-        position: IDLMMPosition,
-        newLowerBinId: number,
-        newUpperBinId: number
-    ): Promise<void> {
-        // Implementation will use the SDK to adjust the position range
-        // This is a placeholder for the actual SDK implementation
-        console.log('Adjusting position range:', {
-            positionId: position.address.toString(),
+    public async adjustPositionRange(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+        const currentPrice = metrics.priceRange.current;
+        const newLowerBinId = Math.floor(currentPrice * 0.9); // 10% below current price
+        const newUpperBinId = Math.ceil(currentPrice * 1.1); // 10% above current price
+
+        await this.dlmmService.adjustPosition({
+            position,
             newLowerBinId,
             newUpperBinId
         });
     }
 
-    private async addLiquidity(
-        position: IDLMMPosition,
-        amount: bigint
-    ): Promise<void> {
-        // Implementation will use the SDK to add liquidity
-        // This is a placeholder for the actual SDK implementation
-        console.log('Adding liquidity:', {
-            positionId: position.address.toString(),
-            amount
+    public async addLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+        const optimalAmount = metrics.totalValueLocked * 0.1; // Add 10% of current TVL
+        await this.dlmmService.adjustPosition({
+            position,
+            addAmount: optimalAmount
         });
     }
 
-    private async removeLiquidity(
-        position: IDLMMPosition,
-        amount: bigint
-    ): Promise<void> {
-        // Implementation will use the SDK to remove liquidity
-        // This is a placeholder for the actual SDK implementation
-        console.log('Removing liquidity:', {
-            positionId: position.address.toString(),
-            amount: amount.toString()
+    public async removeLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+        const removeAmount = metrics.totalValueLocked * 0.2; // Remove 20% of current TVL
+        await this.dlmmService.adjustPosition({
+            position,
+            removeAmount
         });
+    }
+
+    private shouldAdjustRange(health: IHealthMetrics): boolean {
+        return health.warnings.some(w => w.type === 'PRICE_RANGE_DEVIATION' && w.severity === 'HIGH');
+    }
+
+    private shouldAddLiquidity(metrics: IPositionMetrics): boolean {
+        return metrics.binUtilization > 90;
+    }
+
+    private shouldRemoveLiquidity(health: IHealthMetrics): boolean {
+        return health.warnings.some(w => w.type === 'HIGH_IL_RISK' && w.severity === 'HIGH');
     }
 }

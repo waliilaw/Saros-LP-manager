@@ -84,11 +84,11 @@ describe('RebalancingStrategy', () => {
         const calculateHealth = vi.fn().mockReturnValue(mockHealthHighPriceDeviation);
         vi.mocked(strategy['healthMonitor'].calculateHealth).mockImplementation(calculateHealth);
         
-        const adjustRangeSpy = vi.spyOn(strategy as any, 'adjustPositionRange');
+        const adjustRangeSpy = vi.spyOn(strategy, 'adjustPositionRange');
         
         await strategy.checkAndExecute(mockPosition, mockMetrics);
         
-        expect(adjustRangeSpy).toHaveBeenCalled();
+        expect(adjustRangeSpy).toHaveBeenCalledWith(mockPosition, mockMetrics);
     });
 
     it('should trigger liquidity addition on high utilization', async () => {
@@ -96,31 +96,31 @@ describe('RebalancingStrategy', () => {
         const calculateHealth = vi.fn().mockReturnValue(mockHealthNormal);
         vi.mocked(strategy['healthMonitor'].calculateHealth).mockImplementation(calculateHealth);
         
-        const addLiquiditySpy = vi.spyOn(strategy as any, 'addLiquidity');
+        const addLiquiditySpy = vi.spyOn(strategy, 'addLiquidity');
         
         await strategy.checkAndExecute(mockPosition, mockMetricsHighUtil);
         
-        expect(addLiquiditySpy).toHaveBeenCalled();
+        expect(addLiquiditySpy).toHaveBeenCalledWith(mockPosition, mockMetricsHighUtil);
     });
 
     it('should trigger position reduction on high IL risk', async () => {
         const calculateHealth = vi.fn().mockReturnValue(mockHealthHighIL);
         vi.mocked(strategy['healthMonitor'].calculateHealth).mockImplementation(calculateHealth);
         
-        const removeLiquiditySpy = vi.spyOn(strategy as any, 'removeLiquidity');
+        const removeLiquiditySpy = vi.spyOn(strategy, 'removeLiquidity');
         
         await strategy.checkAndExecute(mockPosition, mockMetrics);
         
-        expect(removeLiquiditySpy).toHaveBeenCalled();
+        expect(removeLiquiditySpy).toHaveBeenCalledWith(mockPosition, mockMetrics);
     });
 
     it('should not trigger any actions when metrics are normal', async () => {
         const calculateHealth = vi.fn().mockReturnValue(mockHealthNormal);
         vi.mocked(strategy['healthMonitor'].calculateHealth).mockImplementation(calculateHealth);
         
-        const adjustRangeSpy = vi.spyOn(strategy as any, 'adjustPositionRange');
-        const addLiquiditySpy = vi.spyOn(strategy as any, 'addLiquidity');
-        const removeLiquiditySpy = vi.spyOn(strategy as any, 'removeLiquidity');
+        const adjustRangeSpy = vi.spyOn(strategy, 'adjustPositionRange');
+        const addLiquiditySpy = vi.spyOn(strategy, 'addLiquidity');
+        const removeLiquiditySpy = vi.spyOn(strategy, 'removeLiquidity');
         
         await strategy.checkAndExecute(mockPosition, mockMetrics);
         

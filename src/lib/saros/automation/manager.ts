@@ -1,13 +1,17 @@
-import { AutomationStrategy } from './strategy';
+import { IRebalancingStrategy } from './strategy';
 import { IDLMMPosition, IPositionMetrics } from '../interfaces';
 import { NotificationManager } from '../../notifications/manager';
 
 export class AutomationManager {
-    private strategies: Map<string, AutomationStrategy> = new Map();
+    private strategiesMap: Map<string, IRebalancingStrategy> = new Map();
+
+    get strategies(): Map<string, IRebalancingStrategy> {
+        return this.strategiesMap;
+    }
     private activeStrategies: Map<string, Set<string>> = new Map(); // positionId -> strategy ids
 
-    registerStrategy(strategy: AutomationStrategy) {
-        this.strategies.set(strategy.id, strategy);
+    registerStrategy(strategy: IRebalancingStrategy) {
+        this.strategiesMap.set(strategy.id, strategy);
     }
 
     activateStrategy(positionId: string, strategyId: string) {
@@ -29,7 +33,7 @@ export class AutomationManager {
         }
     }
 
-    getActiveStrategies(positionId: string): AutomationStrategy[] {
+    getActiveStrategies(positionId: string): IRebalancingStrategy[] {
         const strategyIds = this.activeStrategies.get(positionId) || new Set();
         return Array.from(strategyIds)
             .map(id => this.strategies.get(id)!)

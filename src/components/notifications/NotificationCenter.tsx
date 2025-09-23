@@ -13,7 +13,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
     useEffect(() => {
         const unsubscribe = notificationManager.subscribe(setNotifications);
         return () => unsubscribe();
-    }, []);
+    }, [notificationManager]);
 
     const handleMarkAllRead = () => {
         notificationManager.markAllAsRead();

@@ -1,9 +1,13 @@
 import { usePositions } from '@/context/PositionContext';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
 import { formatNumber } from '@/lib/utils';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { PositionDetails } from './PositionDetails';
+import { AdjustPositionModal } from './AdjustPositionModal';
 
 export function PositionList() {
+    const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+    const [adjustingPosition, setAdjustingPosition] = useState<string | null>(null);
     const { positions, positionMetrics, loading, error, refreshPositions } = usePositions();
 
     const renderMetrics = useCallback((position: IDLMMPosition) => {
@@ -109,13 +113,13 @@ export function PositionList() {
                         {renderMetrics(position)}
                         <div className="mt-4 flex space-x-2">
                             <button
-                                onClick={() => {}} // Will implement position details view
+                                onClick={() => setSelectedPosition(position.address.toString())}
                                 className="px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                             >
                                 Details
                             </button>
                             <button
-                                onClick={() => {}} // Will implement adjust position flow
+                                onClick={() => setAdjustingPosition(position.address.toString())}
                                 className="px-4 py-2 bg-gray-50 text-gray-600 rounded hover:bg-gray-100"
                             >
                                 Adjust
@@ -124,6 +128,32 @@ export function PositionList() {
                     </div>
                 );
             })}
+
+            {selectedPosition && (
+                <PositionDetails
+                    positionId={selectedPosition}
+                    onClose={() => setSelectedPosition(null)}
+                />
+            )}
+
+            {adjustingPosition && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    {(() => {
+                        const position = positions.find(p => p.address.toString() === adjustingPosition);
+                        const metrics = position ? positionMetrics.get(adjustingPosition) : null;
+                        
+                        if (!position || !metrics) return null;
+                        
+                        return (
+                            <AdjustPositionModal
+                                position={position}
+                                metrics={metrics}
+                                onClose={() => setAdjustingPosition(null)}
+                            />
+                        );
+                    })()}
+                </div>
+            )}
         </div>
     );
 }
