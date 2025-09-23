@@ -1,11 +1,6 @@
-import { Connection, clusterApiUrl } from '@solana/web3.js';
-
-export const SOLANA_NETWORK = (process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet') as 'devnet' | 'testnet' | 'mainnet-beta';
-export const SOLANA_RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || clusterApiUrl(SOLANA_NETWORK);
-
-export const connection = new Connection(SOLANA_RPC_ENDPOINT);
-
 // Saros DLMM Constants
+export const SOLANA_NETWORK = (process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet') as 'devnet' | 'testnet' | 'mainnet-beta';
+export const SOLANA_RPC_ENDPOINT = process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT;
 export const SAROS_PROGRAM_ID = process.env.NEXT_PUBLIC_SAROS_PROGRAM_ID;
 export const DEFAULT_BIN_STEP = 100; // Will need to be adjusted based on Saros documentation
 

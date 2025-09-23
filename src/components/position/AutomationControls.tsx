@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { IRebalancingStrategy } from '@/lib/saros/automation/strategy';
 import { usePositions } from '@/context/PositionContext';

@@ -34,9 +34,9 @@ export class SarosDLMMService {
             // Construct instruction data
             // For demo purposes, return a mock position
             return {
-                address: new PublicKey('11111111111111111111111111111111'),
-                owner: new PublicKey('11111111111111111111111111111111'),
-                pool: new PublicKey('11111111111111111111111111111111'),
+                address: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                owner: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                pool: new PublicKey('11111111111111111111111111111111111111111111111111'),
                 tokenXDeposited: BigInt(params.amount),
                 tokenYDeposited: BigInt(0),
                 feesEarnedX: BigInt(0),
@@ -55,11 +55,11 @@ export class SarosDLMMService {
 
     async getUserPositions(): Promise<IDLMMPosition[]> {
         // For demo purposes, return some mock positions
-        return [
-            {
-                address: new PublicKey('11111111111111111111111111111111'),
-                owner: new PublicKey('11111111111111111111111111111111'),
-                pool: new PublicKey('11111111111111111111111111111111'),
+            return [
+                {
+                    address: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                    owner: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                    pool: new PublicKey('11111111111111111111111111111111111111111111111111'),
                 tokenXDeposited: BigInt(1000000),
                 tokenYDeposited: BigInt(1000000),
                 feesEarnedX: BigInt(5000),

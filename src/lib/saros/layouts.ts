@@ -12,8 +12,8 @@ export const POOL_LAYOUT = BufferLayout.struct<{
     feeProtocol: number;
     feesX: bigint;
     feesY: bigint;
-    tokenX: Buffer;
-    tokenY: Buffer;
+    tokenX: Uint8Array;
+    tokenY: Uint8Array;
 }>([
     BufferLayout.u8('version'),
     BufferLayout.u8('isInitialized'),
@@ -39,8 +39,8 @@ export const POSITION_LAYOUT = BufferLayout.struct<{
     feesEarnedX: bigint;
     feesEarnedY: bigint;
     lastUpdatedAt: number;
-    owner: Buffer;
-    pool: Buffer;
+    owner: Uint8Array;
+    pool: Uint8Array;
 }>([
     BufferLayout.u8('version'),
     BufferLayout.u8('isInitialized'),

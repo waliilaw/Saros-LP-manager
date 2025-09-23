@@ -1,9 +1,11 @@
+'use client';
+
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { PositionManager } from '@/lib/saros/position-manager';
 import { SarosDLMMService } from '@/lib/saros/dlmm-service';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
-import { SOLANA_RPC_ENDPOINT } from '@/lib/saros/config';
+import { SOLANA_RPC_ENDPOINT, SOLANA_NETWORK } from '@/lib/saros/config';
 import { AutomationManager } from '@/lib/saros/automation/manager';
 import { RebalancingStrategy } from '@/lib/saros/automation/strategy';
 import { PriceFeedService, PriceData } from '@/lib/saros/price-feed';
@@ -47,15 +49,32 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     // Initialize services
-    const connection = useMemo(() => new Connection(SOLANA_RPC_ENDPOINT), []);
-    const dlmmService = useMemo(() => new SarosDLMMService(connection), [connection]);
-    const positionManager = useMemo(() => new PositionManager(dlmmService), [dlmmService]);
+    const connection = useMemo(() => {
+        if (typeof window === 'undefined') return null;
+        return new Connection(SOLANA_RPC_ENDPOINT || clusterApiUrl(SOLANA_NETWORK));
+    }, []);
+
+    const dlmmService = useMemo(() => {
+        if (!connection) return null;
+        return new SarosDLMMService(connection);
+    }, [connection]);
+
+    const positionManager = useMemo(() => {
+        if (!dlmmService) return null;
+        return new PositionManager(dlmmService);
+    }, [dlmmService]);
     
     // Initialize services
-    const rebalancingStrategy = useMemo(() => new RebalancingStrategy(dlmmService), [dlmmService]);
+    const rebalancingStrategy = useMemo(() => {
+        if (!dlmmService) return null;
+        return new RebalancingStrategy(dlmmService);
+    }, [dlmmService]);
+
     const automationManager = useMemo(() => {
         const manager = new AutomationManager();
-        manager.registerStrategy(rebalancingStrategy);
+        if (rebalancingStrategy) {
+            manager.registerStrategy(rebalancingStrategy);
+        }
         return manager;
     }, [rebalancingStrategy]);
 
@@ -66,6 +85,11 @@ export function PositionProvider({ children }: { children: ReactNode }) {
         try {
             setLoading(true);
             setError(null);
+            
+            if (!dlmmService || !positionManager) {
+                setError('Services not initialized');
+                return;
+            }
             
             // Fetch user's positions from the DLMM service
             const userPositions = await dlmmService.getUserPositions();
@@ -97,6 +121,11 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             setLoading(true);
             setError(null);
 
+            if (!dlmmService) {
+                setError('Service not initialized');
+                return null;
+            }
+
             const position = await dlmmService.createPosition({
                 tokenA: params.tokenA,
                 tokenB: params.tokenB,
@@ -124,6 +153,11 @@ export function PositionProvider({ children }: { children: ReactNode }) {
         try {
             setLoading(true);
             setError(null);
+
+            if (!dlmmService) {
+                setError('Service not initialized');
+                return false;
+            }
 
             const position = positions.find(p => p.address.toString() === params.positionId);
             if (!position) {

@@ -1,3 +1,5 @@
+'use client';
+
 import { usePositions } from '@/context/PositionContext';
 import { formatNumber } from '@/lib/utils';
 import { useMemo, useState } from 'react';

@@ -32,7 +32,7 @@ export class ReportGenerator {
             impermanentLoss: metrics.impermanentLoss,
             volumeLast24h: metrics.volumeLast24h,
             binUtilization: metrics.binUtilization,
-            healthScore: metrics.healthScore || 0,
+            healthScore: position.healthFactor,
         };
     }
 
@@ -78,11 +78,7 @@ export class ReportGenerator {
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         
-        if (navigator.msSaveBlob) {
-            // IE 10+
-            navigator.msSaveBlob(blob, filename);
-            return;
-        }
+        // Modern browsers only
 
         const url = URL.createObjectURL(blob);
         link.href = url;

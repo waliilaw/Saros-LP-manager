@@ -32,7 +32,7 @@ export class PositionHealthMonitor {
         const notificationManager = NotificationManager.getInstance();
 
         // Check price range deviation
-        const priceDeviation = this.checkPriceRangeDeviation(metrics);
+        const priceDeviation: { warning?: HealthWarning, recommendation?: string } = this.checkPriceRangeDeviation(metrics);
         if (priceDeviation.warning) {
             warnings.push(priceDeviation.warning);
             if (priceDeviation.recommendation) {
@@ -101,7 +101,7 @@ export class PositionHealthMonitor {
                 warning: {
                     type: 'PRICE_RANGE_DEVIATION' as const,
                     message: `Price has deviated ${deviation.toFixed(2)}% from optimal range`,
-                    severity: deviation > 30 ? 'HIGH' : 'MEDIUM'
+                    severity: (deviation > 30 ? 'HIGH' : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH'
                 },
                 recommendation: 'Consider adjusting position range to optimize for current market conditions'
             };
@@ -116,7 +116,7 @@ export class PositionHealthMonitor {
                 warning: {
                     type: 'LOW_LIQUIDITY',
                     message: 'Position liquidity is below recommended minimum',
-                    severity: metrics.totalValueLocked < this.MIN_LIQUIDITY_THRESHOLD / 2 ? 'HIGH' : 'MEDIUM'
+                    severity: (metrics.totalValueLocked < this.MIN_LIQUIDITY_THRESHOLD / 2 ? 'HIGH' : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH'
                 },
                 recommendation: 'Consider adding more liquidity to improve position efficiency'
             };
@@ -129,7 +129,7 @@ export class PositionHealthMonitor {
         const ilPercentage = (metrics.impermanentLoss / metrics.totalValueLocked) * 100;
 
         if (ilPercentage > this.IL_THRESHOLD) {
-            const severity: 'LOW' | 'MEDIUM' | 'HIGH' = ilPercentage > 10 ? 'HIGH' : 'MEDIUM';
+            const severity = (ilPercentage > 10 ? 'HIGH' : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH';
             return {
                 warning: {
                     type: 'HIGH_IL_RISK',
@@ -148,7 +148,7 @@ export class PositionHealthMonitor {
         const actualDailyFees = metrics.feesLast24h;
 
         if (actualDailyFees < expectedDailyFees * 0.7) { // Underperforming by 30% or more
-            const severity: 'LOW' | 'MEDIUM' | 'HIGH' = actualDailyFees < expectedDailyFees * 0.5 ? 'HIGH' : 'MEDIUM';
+            const severity = (actualDailyFees < expectedDailyFees * 0.5 ? 'HIGH' : 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH';
             return {
                 warning: {
                     type: 'UNDERPERFORMING',

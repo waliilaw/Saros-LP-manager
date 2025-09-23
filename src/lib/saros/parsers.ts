@@ -3,11 +3,11 @@ import { PublicKey } from '@solana/web3.js';
 import { IDLMMPool, IDLMMPosition } from './interfaces';
 import { POOL_LAYOUT, POSITION_LAYOUT } from './layouts';
 
-export const parsePubkey = (data: Buffer): PublicKey => {
+export const parsePubkey = (data: Uint8Array): PublicKey => {
     return new PublicKey(data);
 };
 
-export const parsePool = (data: Buffer, address: PublicKey): IDLMMPool => {
+export const parsePool = (data: Uint8Array, address: PublicKey): IDLMMPool => {
     const poolData = POOL_LAYOUT.decode(data);
     
     return {
@@ -25,7 +25,7 @@ export const parsePool = (data: Buffer, address: PublicKey): IDLMMPool => {
     };
 };
 
-export const parsePosition = (data: Buffer, address: PublicKey): IDLMMPosition => {
+export const parsePosition = (data: Uint8Array, address: PublicKey): IDLMMPosition => {
     const posData = POSITION_LAYOUT.decode(data);
     
     return {

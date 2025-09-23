@@ -1,5 +1,5 @@
-import { Connection, PublicKey } from '@solana/web3.js';
-import { SOLANA_RPC_ENDPOINT } from './config';
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
+import { SOLANA_RPC_ENDPOINT, SOLANA_NETWORK } from './config';
 
 export interface PriceData {
     price: number;
@@ -13,7 +13,7 @@ export class PriceFeedService {
     private priceCallbacks: Map<string, ((price: PriceData) => void)[]> = new Map();
 
     constructor() {
-        this.connection = new Connection(SOLANA_RPC_ENDPOINT);
+        this.connection = new Connection(SOLANA_RPC_ENDPOINT || clusterApiUrl(SOLANA_NETWORK));
     }
 
     async subscribeToPriceFeed(tokenAddress: string, callback: (price: PriceData) => void): Promise<void> {

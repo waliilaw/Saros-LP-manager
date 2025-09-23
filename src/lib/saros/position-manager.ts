@@ -21,7 +21,7 @@ export class PositionManager {
             return cached.position;
         }
 
-        const position = await this.dlmmService.getPosition(positionId);
+        const position = await this.dlmmService.getPosition(new PublicKey(positionId));
         if (position) {
             this.positionCache.set(positionId, {
                 position,
@@ -35,7 +35,7 @@ export class PositionManager {
         const position = await this.getPosition(positionId);
         if (!position) return null;
 
-        const pool = await this.dlmmService.getPool(position.pool.toString());
+        const pool = await this.dlmmService.getPool(position.pool);
         if (!pool) return null;
 
         // Get current price from active bin
@@ -76,7 +76,7 @@ export class PositionManager {
         // Check various conditions that might trigger rebalancing
         const healthScore = PositionMetricsService.calculateHealthScore(
             position,
-            (await this.dlmmService.getPool(position.pool.toString()))!,
+            (await this.dlmmService.getPool(position.pool))!,
             metrics.priceRange.current
         );
 

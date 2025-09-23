@@ -1,3 +1,5 @@
+'use client';
+
 import { usePositions } from '@/context/PositionContext';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
 import { formatNumber } from '@/lib/utils';
