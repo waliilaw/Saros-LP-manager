@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-end-rgb));
+}
+
+@layer components {
+  .metric-card {
+    @apply p-6 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300;
+  }
+
+  .metric-title {
+    @apply text-sm font-medium text-gray-600 uppercase tracking-wider;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600;
+  }
+
+  .metric-subvalue {
+    @apply ml-2 text-sm text-gray-500 font-medium;
+  }
+
+  .chart-container {
+    @apply mt-12 bg-white rounded-xl shadow-lg p-6 border border-gray-100;
+  }
+
+  .chart-title {
+    @apply text-xl font-bold text-gray-800 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700;
+  }
+
+  .button-primary {
+    @apply px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg;
+  }
+
+  .button-secondary {
+    @apply px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-md;
+  }
+}

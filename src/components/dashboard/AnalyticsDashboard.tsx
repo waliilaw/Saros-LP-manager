@@ -57,45 +57,58 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
     }, [positions, positionMetrics, healthMonitor]);
 
     const renderMetricCard = (title: string, value: string | number, subValue?: string) => (
-        <div className="p-6 bg-white rounded-lg shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-            <div className="mt-2 flex items-baseline">
-                <div className="text-2xl font-semibold">{value}</div>
+        <div className="metric-card">
+            <h3 className="metric-title">{title}</h3>
+            <div className="mt-3 flex items-baseline">
+                <div className="metric-value">{value}</div>
                 {subValue && (
-                    <div className="ml-2 text-sm text-gray-500">{subValue}</div>
+                    <div className="metric-subvalue">{subValue}</div>
                 )}
             </div>
         </div>
     );
 
     return (
-        <div className={className}>
-            <h2 className="text-2xl font-bold mb-6">Portfolio Analytics</h2>
+        <div className={`${className} p-8 bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl`}>
+            <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">Portfolio Analytics</h2>
+                <button 
+                    onClick={() => setShowReportModal(true)}
+                    className="button-primary"
+                >
+                    Generate Report
+                </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {renderMetricCard(
                     'Total Value Locked',
-                    `$${formatNumber(analytics.totalValueLocked)}`
+                    `$${formatNumber(analytics.totalValueLocked)}`,
+                    'Total liquidity'
                 )}
 
                 {renderMetricCard(
                     'Total Fees Earned',
-                    `$${formatNumber(analytics.totalFeesEarned)}`
+                    `$${formatNumber(analytics.totalFeesEarned)}`,
+                    'Cumulative earnings'
                 )}
 
                 {renderMetricCard(
                     '24h Volume',
-                    `$${formatNumber(analytics.totalVolume24h)}`
+                    `$${formatNumber(analytics.totalVolume24h)}`,
+                    'Trading activity'
                 )}
 
                 {renderMetricCard(
                     'Average APR',
-                    `${formatNumber(analytics.averageApr)}%`
+                    `${formatNumber(analytics.averageApr)}%`,
+                    'Annual yield'
                 )}
 
                 {renderMetricCard(
                     'Total Impermanent Loss',
-                    `-$${formatNumber(analytics.totalImpermanentLoss)}`
+                    `-$${formatNumber(analytics.totalImpermanentLoss)}`,
+                    'Price impact'
                 )}
 
                 {renderMetricCard(
@@ -105,8 +118,8 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
                 )}
             </div>
 
-            <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-4">Performance History</h3>
+            <div className="chart-container">
+                <h3 className="chart-title">Performance History</h3>
                 <ChartDashboard
                     data={{
                         tvlHistory: [

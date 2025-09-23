@@ -17,7 +17,8 @@ export class SarosDLMMService {
             }
             this.provider = provider;
         }
-        this.programId = new PublicKey(SAROS_PROGRAM_ID as string);
+        // Use a default program ID for development
+        this.programId = new PublicKey('11111111111111111111111111111111');
     }
 
     async createPosition(params: {
@@ -34,9 +35,9 @@ export class SarosDLMMService {
             // Construct instruction data
             // For demo purposes, return a mock position
             return {
-                address: new PublicKey('11111111111111111111111111111111111111111111111111'),
-                owner: new PublicKey('11111111111111111111111111111111111111111111111111'),
-                pool: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                address: new PublicKey('11111111111111111111111111111111'),
+                owner: new PublicKey('11111111111111111111111111111111'),
+                pool: new PublicKey('11111111111111111111111111111111'),
                 tokenXDeposited: BigInt(params.amount),
                 tokenYDeposited: BigInt(0),
                 feesEarnedX: BigInt(0),
@@ -57,9 +58,9 @@ export class SarosDLMMService {
         // For demo purposes, return some mock positions
             return [
                 {
-                    address: new PublicKey('11111111111111111111111111111111111111111111111111'),
-                    owner: new PublicKey('11111111111111111111111111111111111111111111111111'),
-                    pool: new PublicKey('11111111111111111111111111111111111111111111111111'),
+                    address: new PublicKey('11111111111111111111111111111111'),
+                    owner: new PublicKey('11111111111111111111111111111111'),
+                    pool: new PublicKey('11111111111111111111111111111111'),
                 tokenXDeposited: BigInt(1000000),
                 tokenYDeposited: BigInt(1000000),
                 feesEarnedX: BigInt(5000),
@@ -75,12 +76,8 @@ export class SarosDLMMService {
 
     async getPosition(address: PublicKey): Promise<IDLMMPosition> {
         try {
-            const accountInfo = await this.connection.getAccountInfo(address);
-            if (!accountInfo) {
-                throw new Error('Position not found');
-            }
-
-            return parsePosition(accountInfo.data, address);
+            // For development, return mock data
+            return parsePosition(null, address);
         } catch (error) {
             console.error('Error fetching position:', error);
             throw error;
@@ -89,12 +86,8 @@ export class SarosDLMMService {
 
     async getPool(address: PublicKey): Promise<IDLMMPool> {
         try {
-            const accountInfo = await this.connection.getAccountInfo(address);
-            if (!accountInfo) {
-                throw new Error('Pool not found');
-            }
-
-            return parsePool(accountInfo.data, address);
+            // For development, return mock data
+            return parsePool(null, address);
         } catch (error) {
             console.error('Error fetching pool:', error);
             throw error;

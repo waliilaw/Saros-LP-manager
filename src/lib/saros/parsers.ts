@@ -7,7 +7,24 @@ export const parsePubkey = (data: Uint8Array): PublicKey => {
     return new PublicKey(data);
 };
 
-export const parsePool = (data: Uint8Array, address: PublicKey): IDLMMPool => {
+export const parsePool = (data: Uint8Array | null, address: PublicKey): IDLMMPool => {
+    // For development, return mock data if no data is provided
+    if (!data) {
+        return {
+            address,
+            tokenX: new PublicKey('11111111111111111111111111111111'),
+            tokenY: new PublicKey('11111111111111111111111111111111'),
+            reserveX: BigInt(1000000),
+            reserveY: BigInt(1000000),
+            activeId: 1000,
+            binStep: 100,
+            totalLiquidity: BigInt(2000000),
+            feeProtocol: 30,
+            feesX: BigInt(5000),
+            feesY: BigInt(5000)
+        };
+    }
+
     const poolData = POOL_LAYOUT.decode(data);
     
     return {
@@ -25,7 +42,25 @@ export const parsePool = (data: Uint8Array, address: PublicKey): IDLMMPool => {
     };
 };
 
-export const parsePosition = (data: Uint8Array, address: PublicKey): IDLMMPosition => {
+export const parsePosition = (data: Uint8Array | null, address: PublicKey): IDLMMPosition => {
+    // For development, return mock data if no data is provided
+    if (!data) {
+        return {
+            address,
+            owner: new PublicKey('11111111111111111111111111111111'),
+            pool: new PublicKey('11111111111111111111111111111111'),
+            lowerBinId: 1000,
+            upperBinId: 2000,
+            tokenXDeposited: BigInt(1000000),
+            tokenYDeposited: BigInt(1000000),
+            feesEarnedX: BigInt(5000),
+            feesEarnedY: BigInt(5000),
+            lastUpdatedAt: Date.now(),
+            liquidityShares: [BigInt(1000)],
+            healthFactor: 85
+        };
+    }
+
     const posData = POSITION_LAYOUT.decode(data);
     
     return {

@@ -21,7 +21,7 @@ export class PositionManager {
             return cached.position;
         }
 
-        const position = await this.dlmmService.getPosition(new PublicKey(positionId));
+        const position = await this.dlmmService.getPosition(new PublicKey('11111111111111111111111111111111'));
         if (position) {
             this.positionCache.set(positionId, {
                 position,
