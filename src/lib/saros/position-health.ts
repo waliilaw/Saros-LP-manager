@@ -88,7 +88,7 @@ export class PositionHealthMonitor {
         };
     }
 
-    private checkPriceRangeDeviation(metrics: IPositionMetrics) {
+    private checkPriceRangeDeviation(metrics: any) {
         const currentPrice = metrics.priceRange.current;
         const optimalMin = metrics.priceRange.min;
         const optimalMax = metrics.priceRange.max;
@@ -110,7 +110,7 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkLiquidityLevels(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
+    private checkLiquidityLevels(metrics: any): { warning?: HealthWarning, recommendation?: string } {
         if (metrics.totalValueLocked < this.MIN_LIQUIDITY_THRESHOLD) {
             return {
                 warning: {
@@ -125,7 +125,7 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkImpermanentLossRisk(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
+    private checkImpermanentLossRisk(metrics: any): { warning?: HealthWarning, recommendation?: string } {
         const ilPercentage = (metrics.impermanentLoss / metrics.totalValueLocked) * 100;
 
         if (ilPercentage > this.IL_THRESHOLD) {
@@ -143,7 +143,7 @@ export class PositionHealthMonitor {
         return {};
     }
 
-    private checkPerformance(metrics: IPositionMetrics): { warning?: HealthWarning, recommendation?: string } {
+    private checkPerformance(metrics: any): { warning?: HealthWarning, recommendation?: string } {
         const expectedDailyFees = metrics.totalValueLocked * (metrics.apr / 365 / 100);
         const actualDailyFees = metrics.feesLast24h;
 

@@ -1,69 +1,73 @@
-import { IRebalancingStrategy } from './strategy';
-import { IDLMMPosition, IPositionMetrics } from '../interfaces';
-import { NotificationManager } from '../../notifications/manager';
+import { IRebalancingStrategy, RebalanceParams } from './strategy';
 
 export class AutomationManager {
-    private strategiesMap: Map<string, IRebalancingStrategy> = new Map();
+  private strategiesMap: Map<string, IRebalancingStrategy> = new Map();
+  private activeStrategies: Map<string, string> = new Map(); // positionId -> strategyName
 
-    get strategies(): Map<string, IRebalancingStrategy> {
-        return this.strategiesMap;
+  constructor() {}
+
+  registerStrategy(strategy: IRebalancingStrategy): void {
+    this.strategiesMap.set(strategy.name, strategy);
+  }
+
+  async activateStrategy(positionId: string, strategyName: string, params: RebalanceParams): Promise<boolean> {
+    const strategy = this.strategiesMap.get(strategyName);
+    if (!strategy) {
+      throw new Error(`Strategy ${strategyName} not found`);
     }
-    private activeStrategies: Map<string, Set<string>> = new Map(); // positionId -> strategy ids
 
-    registerStrategy(strategy: IRebalancingStrategy) {
-        this.strategiesMap.set(strategy.id, strategy);
-    }
-
-    activateStrategy(positionId: string, strategyId: string) {
-        if (!this.strategies.has(strategyId)) {
-            throw new Error(`Strategy ${strategyId} not found`);
+    try {
+      const shouldRebalance = await strategy.evaluate(params);
+      if (shouldRebalance) {
+        const success = await strategy.execute(params);
+        if (success) {
+          this.activeStrategies.set(positionId, strategyName);
+          return true;
         }
+      }
+      return false;
+    } catch (error) {
+      console.error(`Failed to activate strategy ${strategyName} for position ${positionId}:`, error);
+      return false;
+    }
+  }
 
-        if (!this.activeStrategies.has(positionId)) {
-            this.activeStrategies.set(positionId, new Set());
+  deactivateStrategy(positionId: string): void {
+    this.activeStrategies.delete(positionId);
+  }
+
+  getActiveStrategy(positionId: string): string | undefined {
+    return this.activeStrategies.get(positionId);
+  }
+
+  get strategies(): IRebalancingStrategy[] {
+    return Array.from(this.strategiesMap.values());
+  }
+
+  async checkAndExecuteStrategies(positions: Map<string, RebalanceParams>): Promise<Map<string, boolean>> {
+    const results = new Map<string, boolean>();
+
+    for (const [positionId, params] of positions.entries()) {
+      const strategyName = this.activeStrategies.get(positionId);
+      if (!strategyName) continue;
+
+      const strategy = this.strategiesMap.get(strategyName);
+      if (!strategy) continue;
+
+      try {
+        const shouldRebalance = await strategy.evaluate(params);
+        if (shouldRebalance) {
+          const success = await strategy.execute(params);
+          results.set(positionId, success);
+        } else {
+          results.set(positionId, false);
         }
-
-        this.activeStrategies.get(positionId)!.add(strategyId);
+      } catch (error) {
+        console.error(`Failed to execute strategy for position ${positionId}:`, error);
+        results.set(positionId, false);
+      }
     }
 
-    deactivateStrategy(positionId: string, strategyId: string) {
-        const strategies = this.activeStrategies.get(positionId);
-        if (strategies) {
-            strategies.delete(strategyId);
-        }
-    }
-
-    getActiveStrategies(positionId: string): IRebalancingStrategy[] {
-        const strategyIds = this.activeStrategies.get(positionId) || new Set();
-        return Array.from(strategyIds)
-            .map(id => this.strategies.get(id)!)
-            .filter(Boolean);
-    }
-
-    async executeStrategies(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const strategies = this.getActiveStrategies(position.address.toString());
-        const notificationManager = NotificationManager.getInstance();
-        
-        await Promise.all(
-            strategies.map(async strategy => {
-                try {
-                    await strategy.checkAndExecute(position, metrics);
-                    notificationManager.addNotification({
-                        type: 'success',
-                        title: `Strategy Executed: ${strategy.name}`,
-                        message: `Successfully executed ${strategy.name} for position ${position.address.toString().slice(0, 8)}`,
-                        positionId: position.address.toString()
-                    });
-                } catch (error) {
-                    console.error(`Strategy ${strategy.id} failed:`, error);
-                    notificationManager.addNotification({
-                        type: 'error',
-                        title: `Strategy Failed: ${strategy.name}`,
-                        message: `Failed to execute ${strategy.name} for position ${position.address.toString().slice(0, 8)}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        positionId: position.address.toString()
-                    });
-                }
-            })
-        );
-    }
+    return results;
+  }
 }

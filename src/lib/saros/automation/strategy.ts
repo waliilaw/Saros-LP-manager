@@ -1,82 +1,127 @@
-import { IDLMMPosition, IPositionMetrics } from '../interfaces';
-import { IHealthMetrics, PositionHealthMonitor } from '../position-health';
+import { PublicKey } from '@solana/web3.js';
 import { SarosDLMMService } from '../dlmm-service';
+import { IDLMMPosition } from '../interfaces';
 
-export interface IRebalancingStrategy {
-    id: string;
-    name: string;
-    description: string;
-    checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
-    adjustPositionRange(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
-    addLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
-    removeLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void>;
+export interface RebalanceParams {
+  position: IDLMMPosition;
+  currentPrice: number;
+  targetPriceRange: {
+    lower: number;
+    upper: number;
+  };
+  rebalanceThreshold: number; // Percentage deviation that triggers rebalancing
+  minLiquidity: number; // Minimum liquidity to maintain
 }
 
-export class RebalancingStrategy implements IRebalancingStrategy {
-    private healthMonitor: PositionHealthMonitor;
-    private dlmmService: SarosDLMMService;
-    public readonly id = 'auto-rebalance';
-    public readonly name = 'Auto Rebalancing';
-    public readonly description = 'Automatically rebalances positions based on market conditions';
+export interface IRebalancingStrategy {
+  name: string;
+  description: string;
+  evaluate(params: RebalanceParams): Promise<boolean>;
+  execute(params: RebalanceParams): Promise<boolean>;
+}
 
-    constructor(dlmmService: SarosDLMMService) {
-        this.healthMonitor = new PositionHealthMonitor();
-        this.dlmmService = dlmmService;
+export class DynamicRangeStrategy implements IRebalancingStrategy {
+  name = 'Dynamic Range Strategy';
+  description = 'Automatically adjusts position range based on price movements and volatility';
+
+  constructor(private dlmmService: SarosDLMMService) {}
+
+  private calculateOptimalRange(currentPrice: number, volatility: number): { lower: number; upper: number } {
+    // Calculate optimal range based on historical volatility
+    const range = currentPrice * (volatility / 100);
+    return {
+      lower: currentPrice - range,
+      upper: currentPrice + range,
+    };
+  }
+
+  private async getHistoricalVolatility(tokenAddress: PublicKey): Promise<number> {
+    // TODO: Implement volatility calculation using price history
+    // For now, return a mock value
+    return 5; // 5% volatility
+  }
+
+  async evaluate({ position, currentPrice, rebalanceThreshold }: RebalanceParams): Promise<boolean> {
+    const volatility = await this.getHistoricalVolatility(position.pool);
+    const optimalRange = this.calculateOptimalRange(currentPrice, volatility);
+    
+    // Check if current position is outside optimal range by threshold
+    const lowerDeviation = Math.abs((position.lowerBinId - optimalRange.lower) / optimalRange.lower);
+    const upperDeviation = Math.abs((position.upperBinId - optimalRange.upper) / optimalRange.upper);
+    
+    return lowerDeviation > rebalanceThreshold || upperDeviation > rebalanceThreshold;
+  }
+
+  async execute({ position, currentPrice }: RebalanceParams): Promise<boolean> {
+    try {
+      const volatility = await this.getHistoricalVolatility(position.pool);
+      const optimalRange = this.calculateOptimalRange(currentPrice, volatility);
+
+      // Adjust position to new optimal range
+      const success = await this.dlmmService.adjustPosition({
+        position,
+        newLowerBinId: Math.floor(optimalRange.lower),
+        newUpperBinId: Math.ceil(optimalRange.upper),
+      });
+
+      return success;
+    } catch (error) {
+      console.error('Failed to execute rebalancing strategy:', error);
+      return false;
     }
+  }
+}
 
-    public async checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const health = await this.healthMonitor.calculateHealth(position, metrics);
+export class VolatilityHarvestingStrategy implements IRebalancingStrategy {
+  name = 'Volatility Harvesting Strategy';
+  description = 'Capitalizes on high volatility periods by widening ranges and increasing liquidity';
 
-        if (this.shouldAdjustRange(health)) {
-            await this.adjustPositionRange(position, metrics);
-        }
+  constructor(private dlmmService: SarosDLMMService) {}
 
-        if (this.shouldAddLiquidity(metrics)) {
-            await this.addLiquidity(position, metrics);
-        }
+  private async getMarketConditions(tokenAddress: PublicKey): Promise<{ volatility: number; trend: number }> {
+    // TODO: Implement market analysis
+    // For now, return mock values
+    return {
+      volatility: 8, // 8% volatility
+      trend: 0.5, // Slight upward trend
+    };
+  }
 
-        if (this.shouldRemoveLiquidity(health)) {
-            await this.removeLiquidity(position, metrics);
-        }
+  async evaluate({ position, currentPrice, rebalanceThreshold }: RebalanceParams): Promise<boolean> {
+    const { volatility, trend } = await this.getMarketConditions(position.pool);
+    
+    // Evaluate if market conditions warrant strategy adjustment
+    const volatilityThreshold = rebalanceThreshold * 1.5;
+    const trendStrength = Math.abs(trend);
+    
+    return volatility > volatilityThreshold || trendStrength > rebalanceThreshold;
+  }
+
+  async execute({ position, currentPrice, minLiquidity }: RebalanceParams): Promise<boolean> {
+    try {
+      const { volatility, trend } = await this.getMarketConditions(position.pool);
+      
+      // Calculate new range based on volatility and trend
+      const rangeWidth = currentPrice * (volatility / 100) * (1 + Math.abs(trend));
+      const rangeMidpoint = currentPrice * (1 + trend * 0.5);
+      
+      const newRange = {
+        lower: rangeMidpoint - rangeWidth,
+        upper: rangeMidpoint + rangeWidth,
+      };
+
+      // Adjust position with new range and potentially increased liquidity
+      const success = await this.dlmmService.adjustPosition({
+        position,
+        newLowerBinId: Math.floor(newRange.lower),
+        newUpperBinId: Math.ceil(newRange.upper),
+        addAmount: minLiquidity * (volatility / 100), // Add more liquidity in high volatility
+      });
+
+      return success;
+    } catch (error) {
+      console.error('Failed to execute volatility harvesting strategy:', error);
+      return false;
     }
-
-    public async adjustPositionRange(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const currentPrice = metrics.priceRange.current;
-        const newLowerBinId = Math.floor(currentPrice * 0.9); // 10% below current price
-        const newUpperBinId = Math.ceil(currentPrice * 1.1); // 10% above current price
-
-        await this.dlmmService.adjustPosition({
-            position,
-            newLowerBinId,
-            newUpperBinId
-        });
-    }
-
-    public async addLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const optimalAmount = metrics.totalValueLocked * 0.1; // Add 10% of current TVL
-        await this.dlmmService.adjustPosition({
-            position,
-            addAmount: optimalAmount
-        });
-    }
-
-    public async removeLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const removeAmount = metrics.totalValueLocked * 0.2; // Remove 20% of current TVL
-        await this.dlmmService.adjustPosition({
-            position,
-            removeAmount
-        });
-    }
-
-    private shouldAdjustRange(health: IHealthMetrics): boolean {
-        return health.warnings.some(w => w.type === 'PRICE_RANGE_DEVIATION' && w.severity === 'HIGH');
-    }
-
-    private shouldAddLiquidity(metrics: IPositionMetrics): boolean {
-        return metrics.binUtilization > 90;
-    }
-
-    private shouldRemoveLiquidity(health: IHealthMetrics): boolean {
-        return health.warnings.some(w => w.type === 'HIGH_IL_RISK' && w.severity === 'HIGH');
-    }
+  }
 }

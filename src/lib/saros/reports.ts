@@ -17,8 +17,8 @@ export interface PerformanceReport {
 
 export class ReportGenerator {
     generatePositionReport(
-        position: IDLMMPosition,
-        metrics: IPositionMetrics
+        position: any,
+        metrics: any
     ): PerformanceReport {
         return {
             timestamp: Date.now(),

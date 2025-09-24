@@ -7,7 +7,7 @@ import { SarosDLMMService } from '@/lib/saros/dlmm-service';
 import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
 import { SOLANA_RPC_ENDPOINT, SOLANA_NETWORK } from '@/lib/saros/config';
 import { AutomationManager } from '@/lib/saros/automation/manager';
-import { RebalancingStrategy } from '@/lib/saros/automation/strategy';
+import { DynamicRangeStrategy } from '@/lib/saros/automation/strategy';
 import { PriceFeedService, PriceData } from '@/lib/saros/price-feed';
 
 interface PositionContextType {
@@ -42,7 +42,7 @@ interface AdjustPositionParams {
 
 const PositionContext = createContext<PositionContextType | null>(null);
 
-export function PositionProvider({ children }: { children: ReactNode }) {
+export function PositionProvider({ children }: any ) {
     const [positions, setPositions] = useState<IDLMMPosition[]>([]);
     const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
     const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     // Initialize services
     const rebalancingStrategy = useMemo(() => {
         if (!dlmmService) return null;
-        return new RebalancingStrategy(dlmmService);
+        return new DynamicRangeStrategy(dlmmService);
     }, [dlmmService]);
 
     const automationManager = useMemo(() => {
