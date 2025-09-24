@@ -42,26 +42,16 @@ export class AutomationManager {
 
     async executeStrategies(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
         const strategies = this.getActiveStrategies(position.address.toString());
-        const notificationManager = NotificationManager.getInstance();
+
         
         await Promise.all(
             strategies.map(async strategy => {
                 try {
                     await strategy.checkAndExecute(position, metrics);
-                    notificationManager.addNotification({
-                        type: 'success',
-                        title: `Strategy Executed: ${strategy.name}`,
-                        message: `Successfully executed ${strategy.name} for position ${position.address.toString().slice(0, 8)}`,
-                        positionId: position.address.toString()
-                    });
+            
                 } catch (error) {
                     console.error(`Strategy ${strategy.id} failed:`, error);
-                    notificationManager.addNotification({
-                        type: 'error',
-                        title: `Strategy Failed: ${strategy.name}`,
-                        message: `Failed to execute ${strategy.name} for position ${position.address.toString().slice(0, 8)}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        positionId: position.address.toString()
-                    });
+                    
                 }
             })
         );

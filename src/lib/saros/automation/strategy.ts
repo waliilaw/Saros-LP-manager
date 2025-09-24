@@ -40,7 +40,7 @@ export class RebalancingStrategy implements IRebalancingStrategy {
         }
     }
 
-    public async adjustPositionRange(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+    public async adjustPositionRange(position: IDLMMPosition, metrics: any ): Promise<void> {
         const currentPrice = metrics.priceRange.current;
         const newLowerBinId = Math.floor(currentPrice * 0.9); // 10% below current price
         const newUpperBinId = Math.ceil(currentPrice * 1.1); // 10% above current price
@@ -52,7 +52,7 @@ export class RebalancingStrategy implements IRebalancingStrategy {
         });
     }
 
-    public async addLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+    public async addLiquidity(position: IDLMMPosition, metrics: any ): Promise<void> {
         const optimalAmount = metrics.totalValueLocked * 0.1; // Add 10% of current TVL
         await this.dlmmService.adjustPosition({
             position,
@@ -60,7 +60,7 @@ export class RebalancingStrategy implements IRebalancingStrategy {
         });
     }
 
-    public async removeLiquidity(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
+    public async removeLiquidity(position: IDLMMPosition, metrics: any): Promise<void> {
         const removeAmount = metrics.totalValueLocked * 0.2; // Remove 20% of current TVL
         await this.dlmmService.adjustPosition({
             position,
@@ -72,7 +72,7 @@ export class RebalancingStrategy implements IRebalancingStrategy {
         return health.warnings.some(w => w.type === 'PRICE_RANGE_DEVIATION' && w.severity === 'HIGH');
     }
 
-    private shouldAddLiquidity(metrics: IPositionMetrics): boolean {
+    private shouldAddLiquidity(metrics: any ): boolean {
         return metrics.binUtilization > 90;
     }
 
