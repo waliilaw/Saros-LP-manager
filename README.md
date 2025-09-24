@@ -1,32 +1,38 @@
 # Saros LP Manager
 
-A comprehensive dashboard for managing Saros DLMM liquidity positions. This application provides real-time monitoring, analytics, and automation tools for liquidity providers.
+A sophisticated DeFi application for managing Saros DLMM liquidity positions with advanced features including automated rebalancing, AI-powered suggestions, and comprehensive analytics.
 
-## Features
+## 🌟 Features
 
-- **Position Management**
-  - Create new liquidity positions
-  - Adjust position parameters (price range, liquidity)
-  - Monitor position health and performance
-  - Real-time metrics (TVL, APR, Volume, Fees)
+### 💹 Portfolio Analytics
+- Real-time position monitoring
+- Performance metrics and charts
+- Historical data analysis
+- Health score tracking
 
-- **Automation Tools**
-  - Automated rebalancing based on market conditions
-  - Position health monitoring
-  - Customizable automation strategies
+### 🤖 Automated Strategies
+- Dynamic range rebalancing
+- Volatility harvesting
+- Custom strategy creation
+- Performance backtesting
 
-- **Analytics Dashboard**
-  - Performance metrics visualization
-  - Historical data analysis
-  - Price range utilization tracking
-  - Fee earnings breakdown
+### 🧠 AI-Powered Suggestions
+- Market trend analysis
+- Position optimization recommendations
+- Risk assessment
+- Performance predictions
 
-## Getting Started
+### 📊 Position Comparison
+- Side-by-side analysis
+- Performance benchmarking
+- Risk profiling
+- Strategy recommendations
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
 - Node.js 18+
-- npm or yarn
+- npm 9+
 - A Solana wallet (e.g., Phantom)
 
 ### Installation
@@ -42,79 +48,143 @@ cd saros-lp-manager
 npm install
 ```
 
-3. Create a `.env` file with your configuration:
-```env
-NEXT_PUBLIC_SOLANA_RPC_ENDPOINT=your_rpc_endpoint
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
 ```
+Edit `.env.local` with your configuration.
 
 4. Start the development server:
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:3000`.
+Visit `http://localhost:3000` to see the application.
 
-### Building for Production
+## 🏗️ Architecture
 
+### Core Components
+
+\`\`\`mermaid
+graph TD
+    A[PositionContext] --> B[Position Manager]
+    A --> C[DLMM Service]
+    B --> D[Automation Manager]
+    B --> E[Price Feed]
+    C --> F[Solana Network]
+    D --> G[Strategy Engine]
+    D --> H[AI Suggestions]
+\`\`\`
+
+### Data Flow
+
+\`\`\`mermaid
+sequenceDiagram
+    participant User
+    participant UI
+    participant Context
+    participant Service
+    participant Blockchain
+
+    User->>UI: Interact
+    UI->>Context: Update State
+    Context->>Service: Execute Action
+    Service->>Blockchain: Submit Transaction
+    Blockchain-->>Service: Confirm
+    Service-->>Context: Update State
+    Context-->>UI: Render Update
+    UI-->>User: Show Result
+\`\`\`
+
+## 🔧 Technical Stack
+
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion
+- **State Management**: React Context + Custom Hooks
+- **Blockchain**: Solana Web3.js, Saros DLMM SDK
+- **Testing**: Vitest, React Testing Library
+- **Performance**: Dynamic Imports, Request Caching
+- **Deployment**: Vercel
+
+## 📈 Performance Optimizations
+
+- Dynamic component loading
+- Request caching with SWR pattern
+- Memoized calculations
+- Real-time performance monitoring
+- Bundle size optimization
+
+## 🔐 Security Features
+
+- Environment variable validation
+- Input sanitization
+- Transaction signing validation
+- Rate limiting
+- Error boundary implementation
+
+## 🧪 Testing
+
+Run the test suite:
 ```bash
-npm run build
-npm start
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run in watch mode
+npm run test:watch
 ```
 
-## Architecture
+## 📦 Deployment
 
-The application is built with:
-- Next.js 15+ for the frontend framework
-- Saros DLMM SDK for liquidity pool interactions
-- TailwindCSS for styling
-- React Context for state management
+The application is configured for deployment on Vercel:
 
-Key components:
-- `PositionContext`: Central state management for positions
-- `PositionList`: Main component for displaying positions
-- `PositionDetails`: Detailed view of a single position
-- `AutomationControls`: Configuration for automated strategies
-- `AnalyticsDashboard`: Performance visualization
+1. Connect your repository to Vercel
+2. Configure environment variables
+3. Deploy with:
+```bash
+npm run deploy
+```
 
-## Usage Guide
+## 🛠️ Development
 
-1. **Connecting Your Wallet**
-   - Click "Connect Wallet" in the top right
-   - Select your Solana wallet provider
-   - Approve the connection
+### Code Structure
+```
+src/
+├── app/           # Next.js pages and layouts
+├── components/    # React components
+│   ├── charts/    # Chart components
+│   ├── common/    # Shared components
+│   └── position/  # Position-related components
+├── context/      # React context providers
+├── hooks/        # Custom React hooks
+└── lib/          # Core business logic
+    └── saros/    # Saros SDK integration
+```
 
-2. **Creating a Position**
-   - Click "Create Position" button
-   - Select token pair
-   - Set price range and amount
-   - Confirm transaction in your wallet
+### Adding New Features
 
-3. **Managing Positions**
-   - View all positions in the main dashboard
-   - Click "Details" to see full position metrics
-   - Use "Adjust" to modify position parameters
-   - Monitor health indicators for each position
+1. Create feature branch
+2. Implement changes
+3. Add tests
+4. Update documentation
+5. Submit PR
 
-4. **Setting Up Automation**
-   - Navigate to a position's details
-   - Click "Automation Settings"
-   - Enable desired strategies
-   - Configure strategy parameters
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Open pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- Built with [Saros DLMM SDK](https://github.com/saros-finance/dlmm-sdk)
-- Inspired by the Saros Finance ecosystem
-- Created for the Saros DeFi Bounty Program
+- Saros Finance team
+- Solana Foundation
+- Open source contributors
