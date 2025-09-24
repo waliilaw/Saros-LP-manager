@@ -11,13 +11,13 @@ import {
 } from '@/lib/notifications/types';
 
 export const NotificationCenter: React.FC = () => {
-  const { notificationManager } = usePositions();
+  const { notificationManager } : any = usePositions();
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<NotificationType | 'ALL'>('ALL');
 
   useEffect(() => {
-    const unsubscribe = notificationManager.subscribe((notification) => {
+    const unsubscribe = notificationManager.subscribe((notification : any) => {
       setNotifications(prev => [notification, ...prev]);
     });
 

@@ -10,7 +10,7 @@ import {
 } from '@/lib/notifications/types';
 
 export const NotificationPreferences: React.FC = () => {
-  const { notificationManager } = usePositions();
+  const { notificationManager }: any = usePositions();
   const [preferences, setPreferences] = useState<INotificationPreferences>({
     enabledTypes: [],
     minPriority: NotificationPriority.LOW,

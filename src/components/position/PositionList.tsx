@@ -13,7 +13,7 @@ export function PositionList() {
     const { positions, positionMetrics, loading, error, refreshPositions } = usePositions();
 
     const renderMetrics = useCallback((position: IDLMMPosition) => {
-        const metrics = positionMetrics.get(position.address.toString());
+        const metrics : any = positionMetrics.get(position.address.toString());
         if (!metrics) return null;
 
         return (
@@ -38,7 +38,7 @@ export function PositionList() {
         );
     }, [positionMetrics]);
 
-    const renderHealthIndicator = useCallback((metrics: IPositionMetrics) => {
+    const renderHealthIndicator = useCallback((metrics: any ) => {
         const getHealthColor = () => {
             if (metrics.binUtilization >= 70) return 'bg-green-500';
             if (metrics.binUtilization >= 40) return 'bg-yellow-500';

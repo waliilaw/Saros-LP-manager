@@ -49,7 +49,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
   const [historicalData, setHistoricalData] = useState<{ timestamp: number; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const priceData = prices.get(token);
+  const priceData : any  = prices.get(token);
 
   useEffect(() => {
     const fetchHistoricalData = async () => {
@@ -236,7 +236,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
       {/* Chart */}
       <div style={{ height }}>
         {chartData ? (
-          <Line data={chartData} options={chartOptions} />
+          <Line data={chartData}  />
         ) : (
           <div className="flex items-center justify-center h-full bg-gray-50 rounded-lg">
             <div className="text-gray-500">No price data available</div>

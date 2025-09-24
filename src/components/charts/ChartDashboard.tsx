@@ -13,29 +13,29 @@ interface ChartDashboardProps {
     className?: string;
 }
 
-export function ChartDashboard({ data, className }: ChartDashboardProps) {
+export function ChartDashboard({ data, className  }: ChartDashboardProps) {
     return (
         <div className={className}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <PerformanceChart
                     data={data.tvlHistory}
                     title="Total Value Locked"
-                    valuePrefix="$"
+                    // valuePrefix="$"
                 />
                 <PerformanceChart
                     data={data.aprHistory}
                     title="Average APR"
-                    valueSuffix="%"
+                    // valueSuffix="%"
                 />
                 <PerformanceChart
                     data={data.feesHistory}
                     title="Cumulative Fees"
-                    valuePrefix="$"
+                    // valuePrefix="$"
                 />
                 <PerformanceChart
                     data={data.volumeHistory}
                     title="Trading Volume"
-                    valuePrefix="$"
+                    // valuePrefix="$"
                 />
             </div>
         </div>

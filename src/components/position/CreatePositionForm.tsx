@@ -17,9 +17,14 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   onError,
 }) => {
   const { connection, publicKey, connected } = useWallet();
-  const { dlmmService } = usePositions();
+  const { dlmmService } : any  = usePositions();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pools, setPools] = useState<string[]>([]);
+  const [loadingPools, setLoadingPools] = useState(false);
+  const [selectedPool, setSelectedPool] = useState('');
+  const [quote, setQuote] = useState<null | { amountIn: string; amountOut: string; priceImpact: number }>(null);
+  const [quoting, setQuoting] = useState(false);
 
   const [formData, setFormData] = useState({
     tokenA: '',
@@ -36,6 +41,87 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleLoadPools = async () => {
+    try {
+      setLoadingPools(true);
+      setError(null);
+      const list = await (dlmmService as any).fetchPoolAddresses();
+      setPools(list || []);
+    } catch (err) {
+      console.error('Failed to fetch pools', err);
+      setError('Failed to fetch pools');
+    } finally {
+      setLoadingPools(false);
+    }
+  };
+
+  const handleSelectPool = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const pool = e.target.value;
+    setSelectedPool(pool);
+    if (!pool) return;
+    try {
+      setError(null);
+      const meta = await (dlmmService as any).getPoolMetadata(pool);
+      if (meta?.baseMint && meta?.quoteMint) {
+        setFormData(prev => ({
+          ...prev,
+          tokenA: meta.baseMint,
+          tokenB: meta.quoteMint,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch pool metadata', err);
+      setError('Failed to fetch selected pool info');
+    }
+  };
+
+  const handlePreviewQuote = async () => {
+    setQuote(null);
+    if (!selectedPool) {
+      setError('Select a pool first');
+      return;
+    }
+    if (!formData.amount || Number(formData.amount) <= 0) {
+      setError('Enter a valid amount to quote');
+      return;
+    }
+    try {
+      setQuoting(true);
+      setError(null);
+      const meta = await (dlmmService as any).getPoolMetadata(selectedPool);
+      if (!meta?.baseMint || !meta?.quoteMint || !meta?.extra) {
+        throw new Error('Pool metadata incomplete');
+      }
+      const tokenBase = formData.isTokenA ? meta.baseMint : meta.quoteMint;
+      const tokenQuote = formData.isTokenA ? meta.quoteMint : meta.baseMint;
+      const tokenBaseDecimal = meta.extra.tokenBaseDecimal ?? 6;
+      const tokenQuoteDecimal = meta.extra.tokenQuoteDecimal ?? 6;
+      const uiAmount = Number(formData.amount);
+      const amount = BigInt(Math.floor(uiAmount * Math.pow(10, tokenBaseDecimal)));
+      const res = await (dlmmService as any).getQuote({
+        pair: selectedPool,
+        tokenBase,
+        tokenQuote,
+        amount,
+        swapForY: !formData.isTokenA, // if input is base, swap for quote
+        isExactInput: true,
+        tokenBaseDecimal,
+        tokenQuoteDecimal,
+        slippage: 0.005,
+      });
+      setQuote({
+        amountIn: uiAmount.toString(),
+        amountOut: (Number(res.amountOut) / Math.pow(10, tokenQuoteDecimal)).toString(),
+        priceImpact: res.priceImpact,
+      });
+    } catch (err) {
+      console.error('Quote failed', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch quote');
+    } finally {
+      setQuoting(false);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -86,43 +172,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     setError(null);
 
     try {
-      // Get or create token accounts
-      const tokenAAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        publicKey,
-        new PublicKey(formData.tokenA)
-      );
-
-      const tokenBAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
-        publicKey,
-        new PublicKey(formData.tokenB)
-      );
-
-      // Create position
-      const position = await dlmmService.createPosition({
-        tokenA: formData.tokenA,
-        tokenB: formData.tokenB,
-        amount: Number(formData.amount),
-        isTokenA: formData.isTokenA,
-        lowerBinId: Number(formData.lowerBinId),
-        upperBinId: Number(formData.upperBinId),
-      });
-
-      onSuccess?.();
-      
-      // Reset form
-      setFormData({
-        tokenA: '',
-        tokenB: '',
-        amount: '',
-        isTokenA: true,
-        lowerBinId: '',
-        upperBinId: '',
-      });
-
+      // Temporarily disable on-chain creation until SDK flow is wired
+      throw new Error('On-chain position creation coming soon. Use Preview Quote meanwhile.');
     } catch (err) {
-      console.error('Failed to create position:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
       setError(errorMessage);
       onError?.(err as Error);
@@ -148,6 +200,30 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-3 gap-3 items-end">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Pool (optional)</label>
+            <select
+              value={selectedPool}
+              onChange={handleSelectPool}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="">-- Choose a pool --</option>
+              {pools.slice(0, 100).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleLoadPools}
+            disabled={loadingPools}
+            className={`button-secondary ${loadingPools ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {loadingPools ? 'Loading...' : 'Load Pools'}
+          </button>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Token A Address
@@ -249,6 +325,24 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
           >
             {loading ? 'Creating Position...' : 'Create Position'}
           </button>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handlePreviewQuote}
+            disabled={quoting || !selectedPool}
+            className={`w-full button-secondary ${quoting || !selectedPool ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {quoting ? 'Quoting...' : 'Preview Quote'}
+          </button>
+          {quote && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-800">
+              <div><span className="font-medium">Amount In:</span> {quote.amountIn}</div>
+              <div><span className="font-medium">Estimated Out:</span> {quote.amountOut}</div>
+              <div><span className="font-medium">Price Impact:</span> {(quote.priceImpact * 100).toFixed(2)}%</div>
+            </div>
+          )}
         </div>
 
         {!connected && (

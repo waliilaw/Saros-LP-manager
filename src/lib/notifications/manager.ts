@@ -54,7 +54,7 @@ export class NotificationManager {
     message: string;
     data?: any;
     actions?: Array<{ label: string; action: string; params?: any }>;
-  }): Promise<INotification> {
+  }){
     // Check if notification type is enabled
     if (!this.preferences.enabledTypes.includes(params.type)) {
       return null;
@@ -149,7 +149,7 @@ export class NotificationManager {
     strategyId: string,
     action: string,
     details: string
-  ): Promise<INotification> {
+  ) {
     return this.createNotification({
       type: NotificationType.STRATEGY_UPDATE,
       priority: NotificationPriority.MEDIUM,
@@ -170,7 +170,7 @@ export class NotificationManager {
     transactionHash: string,
     status: 'pending' | 'success' | 'error',
     message: string
-  ): Promise<INotification> {
+  ){
     return this.createNotification({
       type: NotificationType.TRANSACTION,
       priority: status === 'error'

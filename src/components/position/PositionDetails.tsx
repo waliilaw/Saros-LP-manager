@@ -23,7 +23,7 @@ export function PositionDetails({ positionId, onClose }: PositionDetailsProps) {
         [positions, positionId]
     );
 
-    const metrics = useMemo(() => 
+    const metrics  : any = useMemo(() => 
         position ? positionMetrics.get(positionId) : null,
         [position, positionMetrics, positionId]
     );

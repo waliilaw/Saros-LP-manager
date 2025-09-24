@@ -20,7 +20,7 @@ export function usePriceFeed(tokens: string[]): {
   ) => Promise<{ timestamp: number; value: number }[]>;
   getAggregatedPrice: (token: string, sources?: string[]) => Promise<number | null>;
 } {
-  const { priceFeedService } = usePositions();
+  const { priceFeedService } : any  = usePositions();
   const [prices, setPrices] = useState<Map<string, PriceSubscription>>(new Map());
 
   // Initialize price subscriptions
@@ -40,8 +40,8 @@ export function usePriceFeed(tokens: string[]): {
 
   // Subscribe to price updates
   useEffect(() => {
-    const unsubscribers = tokens.map(token => {
-      return priceFeedService.subscribe(token, (priceData) => {
+    const unsubscribers  = tokens.map(token => {
+      return priceFeedService.subscribe(token, (priceData : any ) => {
         setPrices(prev => {
           const newPrices = new Map(prev);
           newPrices.set(token, {

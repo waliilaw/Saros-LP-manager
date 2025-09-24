@@ -103,7 +103,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   return (
     <div style={{ height: '300px', width: '100%' }}>
-      <Line data={chartData} options={options} />
+      <Line data={chartData}  />
     </div>
   );
 };

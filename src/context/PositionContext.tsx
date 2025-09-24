@@ -9,6 +9,7 @@ import { SOLANA_RPC_ENDPOINT, SOLANA_NETWORK } from '@/lib/saros/config';
 import { AutomationManager } from '@/lib/saros/automation/manager';
 import { RebalancingStrategy } from '@/lib/saros/automation/strategy';
 import { PriceFeedService, PriceData } from '@/lib/saros/price-feed';
+import { useWallet } from '@/context/WalletContext';
 
 interface PositionContextType {
     positions: IDLMMPosition[];
@@ -43,6 +44,7 @@ interface AdjustPositionParams {
 const PositionContext = createContext<PositionContextType | null>(null) ;
 
 export function PositionProvider({ children }: { children: ReactNode }) {
+    const { publicKey, connected } = useWallet();
     const [positions, setPositions] = useState<IDLMMPosition[]>([]);
     const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
     const [loading, setLoading] = useState(false);
@@ -90,9 +92,25 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 setError('Services not initialized');
                 return;
             }
+            if (!connected || !publicKey) {
+                setError('Wallet not connected');
+                return;
+            }
             
+            // Choose a default pair (first available pool) for now
+            const pools = await dlmmService.fetchPoolAddresses();
+            const pair = pools && pools.length > 0 ? pools[0] : null;
+            if (!pair) {
+                setPositions([]);
+                setPositionMetrics(new Map());
+                return;
+            }
+
             // Fetch user's positions from the DLMM service
-            const userPositions = await dlmmService.getUserPositions();
+            const userPositions = await dlmmService.getUserPositions({
+                payer: publicKey.toString(),
+                pair,
+            });
             const metrics = new Map<string, IPositionMetrics>();
 
             for (const position of userPositions) {
