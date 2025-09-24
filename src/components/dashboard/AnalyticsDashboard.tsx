@@ -1,166 +1,134 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { usePositions } from '@/context/PositionContext';
-import { IDLMMPosition, IPositionMetrics } from '@/lib/saros/interfaces';
-import { formatNumber, formatTokenAmount } from '@/lib/utils';
-import { PositionHealthMonitor } from '@/lib/saros/position-health';
-import { ChartDashboard } from '../charts/ChartDashboard';
-import { PerformanceReportModal } from '../reports/PerformanceReportModal';
+import { PerformanceChart } from '../charts/PerformanceChart';
+import { formatCurrency, formatPercentage } from '@/lib/utils';
 
-interface AnalyticsDashboardProps {
-    className?: string;
-}
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6 }
+};
 
-export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
-    const { positions, positionMetrics } = usePositions();
-    const healthMonitor = useMemo(() => new PositionHealthMonitor(), []);
-    const [showReportModal, setShowReportModal] = useState(false);
+const stagger = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
-    const analytics = useMemo(() => {
-        let totalValueLocked = 0;
-        let totalFeesEarned = 0;
-        let totalVolume24h = 0;
-        let averageApr = 0;
-        let totalImpermanentLoss = 0;
-        let healthyPositions = 0;
+export const AnalyticsDashboard = () => {
+  const { metrics, generateReport } = usePositions();
 
-        positions.forEach(position => {
-            const metrics = positionMetrics.get(position.address.toString());
-            if (metrics) {
-                totalValueLocked += metrics.totalValueLocked;
-                totalFeesEarned += Number(position.feesEarnedX) + Number(position.feesEarnedY);
-                totalVolume24h += metrics.volumeLast24h;
-                averageApr += metrics.apr;
-                totalImpermanentLoss += metrics.impermanentLoss;
-
-                const health = healthMonitor.calculateHealth(position, metrics);
-                if (health.healthScore >= 80) {
-                    healthyPositions++;
-                }
-            }
-        });
-
-        if (positions.length > 0) {
-            averageApr /= positions.length;
-        }
-
-        return {
-            totalValueLocked,
-            totalFeesEarned,
-            totalVolume24h,
-            averageApr,
-            totalImpermanentLoss,
-            healthyPositions,
-            totalPositions: positions.length
-        };
-    }, [positions, positionMetrics, healthMonitor]);
-
-    const renderMetricCard = (title: string, value: string | number, subValue?: string) => (
-        <div className="metric-card">
-            <h3 className="metric-title">{title}</h3>
-            <div className="mt-3 flex items-baseline">
-                <div className="metric-value">{value}</div>
-                {subValue && (
-                    <div className="metric-subvalue">{subValue}</div>
-                )}
-            </div>
-        </div>
+  const MetricCard = ({ title, value, subvalue }: { title: string; value: string; subvalue: string }) => (
+    <motion.div className="metric-card" {...fadeInUp}>
+      <h3 className="metric-title">{title}</h3>
+      <div className="metric-value">{value}</div>
+      <div className="metric-subvalue">{subvalue}</div>
+    </motion.div>
     );
 
     return (
-        <div className={`${className} p-8 bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl`}>
-            <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">Portfolio Analytics</h2>
-                <button 
-                    onClick={() => setShowReportModal(true)}
-                    className="button-primary"
-                >
-                    Generate Report
-                </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <h1 className="dashboard-title">Portfolio Analytics</h1>
+        <p className="dashboard-subtitle">
+          Real-time insights into your liquidity positions
+        </p>
+      </motion.div>
+
+      <motion.div
+        variants={stagger}
+        initial="initial"
+        animate="animate"
+        className="stats-grid"
+      >
+        <MetricCard
+          title="TOTAL VALUE LOCKED"
+          value={formatCurrency(metrics.totalValueLocked)}
+          subvalue="Total liquidity"
+        />
+        <MetricCard
+          title="TOTAL FEES EARNED"
+          value={formatCurrency(metrics.totalFeesEarned)}
+          subvalue="Cumulative earnings"
+        />
+        <MetricCard
+          title="24H VOLUME"
+          value={formatCurrency(metrics.volume24h)}
+          subvalue="Trading activity"
+        />
+        <MetricCard
+          title="AVERAGE APR"
+          value={formatPercentage(metrics.averageApr)}
+          subvalue="Annual yield"
+        />
+        <MetricCard
+          title="TOTAL IMPERMANENT LOSS"
+          value={formatCurrency(metrics.impermanentLoss)}
+          subvalue="Price impact"
+        />
+        <MetricCard
+          title="POSITION HEALTH"
+          value={`${metrics.healthyPositions}`}
+          subvalue={`of ${metrics.totalPositions} positions healthy`}
+        />
+      </motion.div>
+
+      <div className="performance-section">
+        <motion.h2
+          className="performance-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          Performance History
+        </motion.h2>
+
+        <motion.div
+          className="charts-grid"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <div className="chart-container">
+            <h3 className="chart-title">Total Value Locked</h3>
+            <PerformanceChart data={metrics.tvlHistory} />
+          </div>
+          <div className="chart-container">
+            <h3 className="chart-title">Average APR</h3>
+            <PerformanceChart data={metrics.aprHistory} />
+          </div>
+          <div className="chart-container">
+            <h3 className="chart-title">Cumulative Fees</h3>
+            <PerformanceChart data={metrics.feesHistory} />
+          </div>
+          <div className="chart-container">
+            <h3 className="chart-title">Trading Volume</h3>
+            <PerformanceChart data={metrics.volumeHistory} />
             </div>
+        </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {renderMetricCard(
-                    'Total Value Locked',
-                    `$${formatNumber(analytics.totalValueLocked)}`,
-                    'Total liquidity'
-                )}
-
-                {renderMetricCard(
-                    'Total Fees Earned',
-                    `$${formatNumber(analytics.totalFeesEarned)}`,
-                    'Cumulative earnings'
-                )}
-
-                {renderMetricCard(
-                    '24h Volume',
-                    `$${formatNumber(analytics.totalVolume24h)}`,
-                    'Trading activity'
-                )}
-
-                {renderMetricCard(
-                    'Average APR',
-                    `${formatNumber(analytics.averageApr)}%`,
-                    'Annual yield'
-                )}
-
-                {renderMetricCard(
-                    'Total Impermanent Loss',
-                    `-$${formatNumber(analytics.totalImpermanentLoss)}`,
-                    'Price impact'
-                )}
-
-                {renderMetricCard(
-                    'Position Health',
-                    analytics.healthyPositions,
-                    `of ${analytics.totalPositions} positions healthy`
-                )}
-            </div>
-
-            <div className="chart-container">
-                <h3 className="chart-title">Performance History</h3>
-                <ChartDashboard
-                    data={{
-                        tvlHistory: [
-                            { timestamp: Date.now() - 86400000 * 7, value: analytics.totalValueLocked * 0.8 },
-                            { timestamp: Date.now() - 86400000 * 6, value: analytics.totalValueLocked * 0.85 },
-                            { timestamp: Date.now() - 86400000 * 5, value: analytics.totalValueLocked * 0.9 },
-                            { timestamp: Date.now() - 86400000 * 4, value: analytics.totalValueLocked * 0.95 },
-                            { timestamp: Date.now() - 86400000 * 3, value: analytics.totalValueLocked * 0.97 },
-                            { timestamp: Date.now() - 86400000 * 2, value: analytics.totalValueLocked * 0.99 },
-                            { timestamp: Date.now() - 86400000, value: analytics.totalValueLocked },
-                        ],
-                        aprHistory: [
-                            { timestamp: Date.now() - 86400000 * 7, value: analytics.averageApr * 1.1 },
-                            { timestamp: Date.now() - 86400000 * 6, value: analytics.averageApr * 1.05 },
-                            { timestamp: Date.now() - 86400000 * 5, value: analytics.averageApr * 0.95 },
-                            { timestamp: Date.now() - 86400000 * 4, value: analytics.averageApr * 1.02 },
-                            { timestamp: Date.now() - 86400000 * 3, value: analytics.averageApr * 0.98 },
-                            { timestamp: Date.now() - 86400000 * 2, value: analytics.averageApr * 1.01 },
-                            { timestamp: Date.now() - 86400000, value: analytics.averageApr },
-                        ],
-                        feesHistory: [
-                            { timestamp: Date.now() - 86400000 * 7, value: analytics.totalFeesEarned * 0.7 },
-                            { timestamp: Date.now() - 86400000 * 6, value: analytics.totalFeesEarned * 0.75 },
-                            { timestamp: Date.now() - 86400000 * 5, value: analytics.totalFeesEarned * 0.8 },
-                            { timestamp: Date.now() - 86400000 * 4, value: analytics.totalFeesEarned * 0.85 },
-                            { timestamp: Date.now() - 86400000 * 3, value: analytics.totalFeesEarned * 0.9 },
-                            { timestamp: Date.now() - 86400000 * 2, value: analytics.totalFeesEarned * 0.95 },
-                            { timestamp: Date.now() - 86400000, value: analytics.totalFeesEarned },
-                        ],
-                        volumeHistory: [
-                            { timestamp: Date.now() - 86400000 * 7, value: analytics.totalVolume24h * 0.9 },
-                            { timestamp: Date.now() - 86400000 * 6, value: analytics.totalVolume24h * 1.1 },
-                            { timestamp: Date.now() - 86400000 * 5, value: analytics.totalVolume24h * 0.95 },
-                            { timestamp: Date.now() - 86400000 * 4, value: analytics.totalVolume24h * 1.05 },
-                            { timestamp: Date.now() - 86400000 * 3, value: analytics.totalVolume24h * 0.98 },
-                            { timestamp: Date.now() - 86400000 * 2, value: analytics.totalVolume24h * 1.02 },
-                            { timestamp: Date.now() - 86400000, value: analytics.totalVolume24h },
-                        ],
-                    }}
-                />
+        <motion.div
+          className="mt-8 flex justify-end"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <button
+            onClick={generateReport}
+            className="button-primary"
+          >
+            Generate Report
+          </button>
+        </motion.div>
             </div>
         </div>
     );
-}
+};
