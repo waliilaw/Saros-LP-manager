@@ -12,6 +12,8 @@
     "@fontsource/fira-code": "^5.0.17",
     "@fontsource/inter": "^5.0.17",
     "@fontsource/playfair-display": "^5.0.17",
+    "@saros-finance/dlmm-sdk": "^1.4.0",
+    "@saros-finance/sdk": "^2.4.0",
     "@solana/web3.js": "^1.91.1",
     "chart.js": "^4.4.2",
     "framer-motion": "^11.0.14",
