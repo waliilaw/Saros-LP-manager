@@ -1,23 +1,20 @@
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { DLMM, DLMMPool, DLMMPosition, BinArray } from '@saros-finance/dlmm-sdk';
+import { SOLANA_NETWORK, SOLANA_RPC_ENDPOINT, SAROS_PROGRAM_ID } from './config';
 
 export class SarosDLMMService {
-  private client: any;
+  private dlmm: DLMM;
   private programId: PublicKey;
 
   constructor(private connection: Connection) {
-    // Initialize with default program ID for now - will be updated from wali.md guide
-    this.programId = new PublicKey('11111111111111111111111111111111');
-    this.client = {
-      // Mock client methods until we get real SDK integration
-      createPosition: async () => ({}),
-      addLiquidity: async () => ({}),
-      removeLiquidity: async () => ({}),
-      adjustRange: async () => ({}),
-      getPosition: async () => ({}),
-      getPool: async () => ({}),
-      getPools: async () => ([]),
-      getBinPrices: async () => ([]),
-    };
+    if (!SAROS_PROGRAM_ID) {
+      throw new Error('SAROS_PROGRAM_ID is not configured');
+    }
+    this.programId = new PublicKey(SAROS_PROGRAM_ID);
+    this.dlmm = new DLMM(
+      this.connection,
+      this.programId
+    );
   }
 
   async createPosition(params: {
@@ -27,14 +24,16 @@ export class SarosDLMMService {
     upperBinId: number;
     amount: number;
     isTokenA: boolean;
-  }): Promise<any> {
+  }): Promise<DLMMPosition> {
     try {
+      // Get pool for token pair
       const pool = await this.getPoolForTokens(params.tokenA, params.tokenB);
       if (!pool) {
         throw new Error('Pool not found for token pair');
       }
 
-      const tx = await this.client.createPosition({
+      // Create position transaction
+      const tx = await this.dlmm.createPosition({
         pool,
         lowerBinId: params.lowerBinId,
         upperBinId: params.upperBinId,
@@ -42,11 +41,13 @@ export class SarosDLMMService {
         isTokenA: params.isTokenA,
       });
 
-      const signature = await this.connection.sendTransaction(tx as any);
+      // Send and confirm transaction
+      const signature = await this.connection.sendTransaction(tx);
       await this.connection.confirmTransaction(signature);
 
-      const positions = await this.client.getPositions(pool);
-      return positions[positions.length - 1] || null;
+      // Get the new position
+      const positions = await this.dlmm.getPositions(pool);
+      return positions[positions.length - 1];
 
     } catch (error) {
       console.error('Failed to create position:', error);
@@ -55,27 +56,30 @@ export class SarosDLMMService {
   }
 
   async adjustPosition(params: {
-    position: any;
+    position: DLMMPosition;
     newLowerBinId?: number;
     newUpperBinId?: number;
     addAmount?: number;
     removeAmount?: number;
   }): Promise<boolean> {
     try {
-      let tx: any;
+      let tx;
 
       if (params.addAmount) {
-        tx = await this.client.addLiquidity({
+        // Add liquidity
+        tx = await this.dlmm.addLiquidity({
           position: params.position,
           amount: params.addAmount,
         });
       } else if (params.removeAmount) {
-        tx = await this.client.removeLiquidity({
+        // Remove liquidity
+        tx = await this.dlmm.removeLiquidity({
           position: params.position,
           amount: params.removeAmount,
         });
       } else if (params.newLowerBinId !== undefined && params.newUpperBinId !== undefined) {
-        tx = await this.client.adjustRange({
+        // Adjust range
+        tx = await this.dlmm.adjustRange({
           position: params.position,
           newLowerBinId: params.newLowerBinId,
           newUpperBinId: params.newUpperBinId,
@@ -84,6 +88,7 @@ export class SarosDLMMService {
         throw new Error('Invalid adjustment parameters');
       }
 
+      // Send and confirm transaction
       const signature = await this.connection.sendTransaction(tx);
       await this.connection.confirmTransaction(signature);
 
@@ -94,31 +99,36 @@ export class SarosDLMMService {
     }
   }
 
-  async getPosition(positionId: string): Promise<any> {
+  async getPosition(positionId: string): Promise<DLMMPosition | null> {
     try {
       const positionPubkey = new PublicKey(positionId);
-      return await this.client.getPosition(positionPubkey);
+      return await this.dlmm.getPosition(positionPubkey);
     } catch (error) {
       console.error('Failed to get position:', error);
       throw error;
     }
   }
 
-  async getPool(poolId: string): Promise<any> {
+  async getPool(poolId: string): Promise<DLMMPool | null> {
     try {
       const poolPubkey = new PublicKey(poolId);
-      return await this.client.getPool(poolPubkey);
+      return await this.dlmm.getPool(poolPubkey);
     } catch (error) {
       console.error('Failed to get pool:', error);
       throw error;
     }
   }
 
-  async getUserPositions(): Promise<any[]> {
+  async getUserPositions(): Promise<DLMMPosition[]> {
     try {
-      const pools = await this.client.getPools();
-      const positionsPromises = pools.map(pool => this.client.getPositions(pool));
+      // Get all pools
+      const pools = await this.dlmm.getPools();
+      
+      // Get positions for each pool
+      const positionsPromises = pools.map(pool => this.dlmm.getPositions(pool));
       const positionsArrays = await Promise.all(positionsPromises);
+      
+      // Flatten and filter positions
       return positionsArrays.flat();
     } catch (error) {
       console.error('Failed to get user positions:', error);
@@ -126,9 +136,9 @@ export class SarosDLMMService {
     }
   }
 
-  private async getPoolForTokens(tokenA: string, tokenB: string): Promise<any> {
+  private async getPoolForTokens(tokenA: string, tokenB: string): Promise<DLMMPool | null> {
     try {
-      const pools = await this.client.getPools();
+      const pools = await this.dlmm.getPools();
       return pools.find(pool => 
         (pool.tokenA.toString() === tokenA && pool.tokenB.toString() === tokenB) ||
         (pool.tokenA.toString() === tokenB && pool.tokenB.toString() === tokenA)
@@ -139,16 +149,16 @@ export class SarosDLMMService {
     }
   }
 
-  async getBinPrices(pool: any): Promise<any> {
+  async getBinPrices(pool: DLMMPool): Promise<BinArray> {
     try {
-      return await this.client.getBinPrices(pool);
+      return await this.dlmm.getBinPrices(pool);
     } catch (error) {
       console.error('Failed to get bin prices:', error);
       throw error;
     }
   }
 
-  async getPositionValue(position: any): Promise<{
+  async getPositionValue(position: DLMMPosition): Promise<{
     valueA: number;
     valueB: number;
     totalValue: number;
@@ -159,6 +169,7 @@ export class SarosDLMMService {
 
       const binPrices = await this.getBinPrices(pool);
       
+      // Calculate position value using bin prices
       let valueA = 0;
       let valueB = 0;
 
