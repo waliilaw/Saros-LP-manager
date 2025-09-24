@@ -79,3 +79,31 @@ export function formatTokenAmount(amount: number, symbol: string, decimals: numb
     const formatted = formatNumber(amount, decimals);
     return `${formatted} ${symbol}`;
 }
+
+/**
+ * Format a currency value
+ * @param value Number to format as currency
+ * @returns Formatted currency string
+ */
+export function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
+/**
+ * Format a percentage value
+ * @param value Number to format as percentage
+ * @returns Formatted percentage string
+ */
+export function formatPercentage(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'percent',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        signDisplay: 'exceptZero',
+    }).format(value / 100);
+}

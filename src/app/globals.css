@@ -1,44 +1,30 @@
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/inter/700.css';
-@import '@fontsource/playfair-display/700.css';
-@import '@fontsource/fira-code/400.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 17, 24, 39;
-  --background-rgb: 249, 250, 251;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
-  font-family: 'Inter', sans-serif;
-}
-
 @layer base {
-  h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+  body {
+    @apply bg-gray-50;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
   }
 }
 
 @layer components {
   .metric-card {
-    @apply p-8 bg-white rounded-2xl shadow-sm border border-gray-100 
+    @apply p-6 bg-white rounded-xl shadow-md border border-gray-100 
            hover:shadow-lg transition-all duration-300 backdrop-blur-lg 
-           backdrop-filter bg-opacity-80;
+           backdrop-filter bg-opacity-90;
   }
 
   .metric-title {
-    @apply text-sm font-medium text-gray-500 uppercase tracking-wider font-mono;
+    @apply text-sm font-mono font-medium text-gray-500 uppercase tracking-wider;
   }
 
   .metric-value {
-    @apply text-4xl font-bold text-gray-900 font-serif mt-2;
+    @apply text-3xl font-serif font-bold text-gray-900 mt-2;
   }
 
   .metric-subvalue {
@@ -46,28 +32,28 @@ body {
   }
 
   .chart-container {
-    @apply mt-12 bg-white rounded-2xl shadow-sm p-8 border border-gray-100 
-           backdrop-blur-lg backdrop-filter bg-opacity-80;
+    @apply mt-8 bg-white rounded-xl shadow-md p-6 border border-gray-100 
+           backdrop-blur-lg backdrop-filter bg-opacity-90;
   }
 
   .chart-title {
-    @apply text-2xl font-bold text-gray-900 mb-8 font-serif;
+    @apply text-xl font-serif font-bold text-gray-900 mb-6;
   }
 
   .button-primary {
-    @apply px-6 py-3 bg-blue-600 text-white rounded-xl 
-           hover:bg-blue-700 transition-all duration-300 
+    @apply px-6 py-3 bg-saros-blue-600 text-white rounded-lg 
+           hover:bg-saros-blue-700 transition-all duration-300 
            shadow-sm hover:shadow-md font-medium;
   }
 
   .button-secondary {
     @apply px-6 py-3 bg-white text-gray-700 border border-gray-200 
-           rounded-xl hover:bg-gray-50 transition-all duration-300 
+           rounded-lg hover:bg-gray-50 transition-all duration-300 
            shadow-sm hover:shadow-md font-medium;
   }
 
   .dashboard-title {
-    @apply text-4xl font-bold text-gray-900 font-serif mb-2;
+    @apply text-4xl font-serif font-bold text-gray-900 mb-2;
   }
 
   .dashboard-subtitle {
@@ -83,14 +69,10 @@ body {
   }
 
   .performance-title {
-    @apply text-3xl font-bold text-gray-900 font-serif mb-8;
+    @apply text-3xl font-serif font-bold text-gray-900 mb-8;
   }
 
   .charts-grid {
     @apply grid grid-cols-1 lg:grid-cols-2 gap-8;
-  }
-
-  .monospace {
-    @apply font-mono text-sm;
   }
 }

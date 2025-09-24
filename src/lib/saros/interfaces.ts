@@ -1,71 +1,30 @@
 import { PublicKey } from '@solana/web3.js';
 
-export interface IDLMMConfig {
-    binStep: number;
-    baseFee: number;
-    protocolShare: number;
-    maxBinId: number;
-    minBinId: number;
-}
-
-export interface IDLMMPool {
-    address: PublicKey;
-    tokenX: PublicKey;
-    tokenY: PublicKey;
-    reserveX: bigint;
-    reserveY: bigint;
-    activeId: number;
-    binStep: number;
-    totalLiquidity: bigint;
-    feeProtocol: number;
-    feesX: bigint;
-    feesY: bigint;
-}
-
 export interface IDLMMPosition {
     address: PublicKey;
-    owner: PublicKey;
     pool: PublicKey;
+    owner: PublicKey;
+    liquidity: number;
     lowerBinId: number;
     upperBinId: number;
-    liquidityShares: bigint[];
-    tokenXDeposited: bigint;
-    tokenYDeposited: bigint;
-    feesEarnedX: bigint;
-    feesEarnedY: bigint;
-    lastUpdatedAt: number;
+    lastUpdateTime: number;
     healthFactor: number;
 }
 
-export interface IDLMMBin {
-    id: number;
-    reserveX: bigint;
-    reserveY: bigint;
-    price: number;
-    liquidityTotal: bigint;
-    supplyShares: bigint;
-}
-
 export interface IPositionMetrics {
-    impermanentLoss: number;
-    totalValueLocked: number;
+    feesEarned: number;
+    volume24h: number;
     apr: number;
-    volumeLast24h: number;
-    feesLast24h: number;
-    binUtilization: number;
+    impermanentLoss: number;
     priceRange: {
-        min: number;
-        max: number;
-        current: number;
+        lower: number;
+        upper: number;
     };
+    utilization: number;
+    healthScore: number;
 }
 
-export interface IPoolSnapshot {
+export interface TimeSeriesData {
     timestamp: number;
-    priceX: number;
-    priceY: number;
-    volumeX: bigint;
-    volumeY: bigint;
-    tvl: number;
-    apr: number;
+    value: number;
 }
