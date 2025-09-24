@@ -40,7 +40,7 @@ interface AdjustPositionParams {
     removeAmount?: number;
 }
 
-const PositionContext = createContext<PositionContextType | null>(null);
+const PositionContext = createContext<PositionContextType | null>(null) ;
 
 export function PositionProvider({ children }: { children: ReactNode }) {
     const [positions, setPositions] = useState<IDLMMPosition[]>([]);
