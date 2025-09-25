@@ -1,4 +1,9 @@
+'use client';
+
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function DashboardPage() {
     return (

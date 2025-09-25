@@ -19,6 +19,13 @@ export const NetworkStatus = () => {
     let mounted = true;
 
     const checkConnection = async () => {
+      if (!connection) {
+        if (mounted) {
+          setStatus('error');
+        }
+        return;
+      }
+      
       try {
         const start = performance.now();
         const slot = await connection.getSlot();

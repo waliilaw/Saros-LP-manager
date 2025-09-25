@@ -5,6 +5,9 @@ import { TestTokenSetup } from '@/components/setup/TestTokenSetup';
 import { CreatePositionForm } from '@/components/position/CreatePositionForm';
 import { NetworkStatus } from '@/components/common/NetworkStatus';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function SetupPage() {
   return (
     <div className="py-12">

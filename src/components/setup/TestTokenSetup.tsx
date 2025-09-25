@@ -23,6 +23,10 @@ export const TestTokenSetup = () => {
     setSuccess(null);
 
     try {
+      if (!connection) {
+        throw new Error('Connection not available');
+      }
+      
       // Request SOL airdrop first
       await requestAirdrop(connection, publicKey);
       setSuccess('Received SOL airdrop');

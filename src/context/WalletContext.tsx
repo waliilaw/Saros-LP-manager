@@ -13,11 +13,11 @@ import { PhantomWalletAdapter } from '@/lib/wallet/adapter';
 import { SOLANA_NETWORK, SOLANA_RPC_ENDPOINT } from '@/lib/saros/config';
 
 interface WalletContextType {
-  wallet: PhantomWalletAdapter;
+  wallet: PhantomWalletAdapter | null;
   publicKey: PublicKey | null;
   connected: boolean;
   connecting: boolean;
-  connection: Connection;
+  connection: Connection | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   signAndSendTransaction: (transaction: any) => Promise<string>;
@@ -26,17 +26,25 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [wallet] = useState(() => new PhantomWalletAdapter());
+  const [wallet, setWallet] = useState<PhantomWalletAdapter | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [connection] = useState(() => {
-    // Only create connection on client side
-    if (typeof window === 'undefined') {
-      return null as any;
+  const [connection, setConnection] = useState<Connection | null>(null);
+  
+  // Initialize wallet and connection on client side only
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const walletAdapter = new PhantomWalletAdapter();
+      const rpcConnection = new Connection(SOLANA_RPC_ENDPOINT);
+      setWallet(walletAdapter);
+      setConnection(rpcConnection);
     }
-    return new Connection(SOLANA_RPC_ENDPOINT);
-  });
+  }, []);
 
   const connect = useCallback(async () => {
+    if (!wallet) {
+      console.error('Wallet not initialized');
+      return;
+    }
     try {
       setConnecting(true);
       await wallet.connect();
@@ -49,6 +57,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [wallet]);
 
   const disconnect = useCallback(async () => {
+    if (!wallet) {
+      console.error('Wallet not initialized');
+      return;
+    }
     try {
       await wallet.disconnect();
     } catch (error) {
@@ -61,12 +73,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!connection) {
       throw new Error('Connection not available');
     }
+    if (!wallet) {
+      throw new Error('Wallet not initialized');
+    }
     return await wallet.signAndSendTransaction(connection, transaction);
   }, [wallet, connection]);
 
   // Auto-connect if previously connected
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && wallet) {
       const autoConnect = async () => {
         try {
           if ((window as any).solana?.isPhantom && !wallet.connected) {
@@ -80,6 +95,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       autoConnect();
     }
   }, [wallet, connect]);
+
+  // Don't render until wallet is initialized on client side
+  if (typeof window === 'undefined' || !wallet || !connection) {
+    return (
+      <WalletContext.Provider
+        value={{
+          wallet: null as any,
+          publicKey: null,
+          connected: false,
+          connecting: false,
+          connection: null as any,
+          connect: async () => {},
+          disconnect: async () => {},
+          signAndSendTransaction: async () => { throw new Error('Wallet not ready'); },
+        }}
+      >
+        {children}
+      </WalletContext.Provider>
+    );
+  }
 
   return (
     <WalletContext.Provider

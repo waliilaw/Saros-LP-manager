@@ -1,8 +1,12 @@
 
+'use client';
+
 import './globals.css';
 import { ClientProviders } from '@/components/providers/ClientProviders';
-import { WalletButton } from '@/components/common/WalletButton';
-import { NetworkStatus } from '@/components/common/NetworkStatus';
+import { ClientHeader } from '@/components/layout/ClientHeader';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function RootLayout({
   children,
@@ -24,44 +28,7 @@ export default function RootLayout({
           </div>
           
           <div className="relative z-20 min-h-screen">
-            <header className="fixed top-4 left-0 w-full z-30 px-4">
-              <div className="relative max-w-7xl mx-auto">
-                {/* Rounded background container */}
-                <div className="header__background"></div>
-                
-                {/* Header content */}
-                <div className="relative z-10 px-6 lg:px-8 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <h1 className="text-xl text-gray-800 tracking-tight" style={{ fontFamily: 'CustomFont', fontWeight: 900 }}>
-                        Saros
-                      </h1>
-                      <span className="text-gray-800 text-sm" style={{ fontFamily: 'CustomFont', fontWeight: 200 }}>LP Manager</span>
-                      <div className="ml-4">
-                        <NetworkStatus />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-8">
-                      <nav className="hidden md:flex items-center space-x-8">
-                        <a href="/dashboard" className="nav-link">
-                          Dashboard
-                        </a>
-                        <a href="/positions" className="nav-link">
-                          Positions
-                        </a>
-                        <a href="/analytics" className="nav-link">
-                          Analytics
-                        </a>
-                        <a href="/setup" className="nav-link">
-                          Setup
-                        </a>
-                      </nav>
-                      <WalletButton />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </header>
+            <ClientHeader />
             
             {/* Add top padding to content to account for fixed header */}
             <div className="pt-20"></div>
