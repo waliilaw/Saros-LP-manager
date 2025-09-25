@@ -35,10 +35,10 @@ export const WalletButton = () => {
   return (
     <motion.button
       onClick={handleClick}
-      className={`px-4 py-2 rounded-lg font-medium shadow-sm ${
+      className={`px-4 py-2 rounded-lg font-medium text-sm border transition-all duration-200 backdrop-blur-sm ${
         connected
-          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-          : 'bg-blue-600 text-white hover:bg-blue-700'
+          ? 'bg-green-100/80 text-green-800 border-green-300/50 hover:bg-green-200/80'
+          : 'bg-blue-100/80 text-blue-800 border-blue-300/50 hover:bg-blue-200/80'
       }`}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}

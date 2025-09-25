@@ -233,9 +233,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-md p-6 border border-gray-100"
+      className="p-6 border border-gray-700/100 rounded-xl"
     >
-      <h2 className="text-xl font-medium text-gray-900 mb-4">
+      <h2 className="text-xl text-gray-800 mb-4" style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>
         Create New Position
       </h2>
 
@@ -261,14 +261,14 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-3 gap-3 items-end">
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Pool (optional)</label>
+            <label className="form-label">Select Pool (optional)</label>
             <select
-              value={selectedPool}
+              value={selectedPool || ''}
               onChange={handleSelectPool}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="form-select"
             >
               <option value="">-- Choose a pool --</option>
               {pools.slice(0, 100).map((p) => (
@@ -280,14 +280,14 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
             type="button"
             onClick={handleLoadPools}
             disabled={loadingPools}
-            className={`button-secondary ${loadingPools ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`btn-secondary ${loadingPools ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {loadingPools ? 'Loading...' : 'Load Pools'}
           </button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="form-group">
+          <label className="form-label">
             Token A Address
           </label>
           <input
@@ -296,12 +296,12 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
             value={formData.tokenA}
             onChange={handleInputChange}
             placeholder="Enter Token A address"
-            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="form-input"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="form-group">
+          <label className="form-label">
             Token B Address
           </label>
           <input
@@ -310,13 +310,13 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
             value={formData.tokenB}
             onChange={handleInputChange}
             placeholder="Enter Token B address"
-            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="form-input"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="form-grid">
+          <div className="form-group">
+            <label className="form-label">
               Amount
             </label>
             <input
@@ -327,19 +327,19 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
               placeholder="Enter amount"
               min="0"
               step="0.000001"
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="form-group">
+            <label className="form-label">
               Token
             </label>
             <select
               name="isTokenA"
               value={formData.isTokenA.toString()}
               onChange={handleInputChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="form-select"
             >
               <option value="true">Token A</option>
               <option value="false">Token B</option>
@@ -347,9 +347,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="form-grid">
+          <div className="form-group">
+            <label className="form-label">
               Lower Bin ID
             </label>
             <input
@@ -358,12 +358,12 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
               value={formData.lowerBinId}
               onChange={handleInputChange}
               placeholder="Enter lower bin ID"
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="form-input"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="form-group">
+            <label className="form-label">
               Upper Bin ID
             </label>
             <input
@@ -372,7 +372,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
               value={formData.upperBinId}
               onChange={handleInputChange}
               placeholder="Enter upper bin ID"
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="form-input"
             />
           </div>
         </div>
@@ -381,7 +381,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
           <button
             type="submit"
             disabled={!connected || loading}
-            className={`w-full button-primary ${
+            className={`btn-primary ${
               !connected || loading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -394,7 +394,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
             type="button"
             onClick={handlePreviewQuote}
             disabled={quoting || !selectedPool}
-            className={`w-full button-secondary ${quoting || !selectedPool ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`btn-secondary ${quoting || !selectedPool ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {quoting ? 'Quoting...' : 'Preview Quote'}
           </button>

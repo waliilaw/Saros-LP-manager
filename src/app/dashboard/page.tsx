@@ -2,8 +2,16 @@ import { DashboardContent } from '@/components/dashboard/DashboardContent';
 
 export default function DashboardPage() {
     return (
-        <div className="container mx-auto px-4 py-8">
-            <DashboardContent />
+        <div className="py-8">
+            <div className="glass-container">
+                {/* Rounded background container */}
+                <div className="glass-container__background"></div>
+                
+                {/* Content */}
+                <div className="glass-content">
+                    <DashboardContent />
+                </div>
+            </div>
         </div>
     );
 }

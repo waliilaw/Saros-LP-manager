@@ -49,11 +49,11 @@ export const NetworkStatus = () => {
   const getStatusColor = () => {
     switch (status) {
       case 'connected':
-        return latency > 1000 ? 'text-yellow-600 bg-yellow-100' : 'text-green-600 bg-green-100';
+        return latency > 1000 ? 'text-yellow-800 bg-yellow-100/80 border-yellow-300/50' : 'text-green-800 bg-green-100/80 border-green-300/50';
       case 'error':
-        return 'text-red-600 bg-red-100';
+        return 'text-red-800 bg-red-100/80 border-red-300/50';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-gray-800 bg-gray-100/80 border-gray-300/50';
     }
   };
 
@@ -70,7 +70,7 @@ export const NetworkStatus = () => {
 
   if (!mounted) {
     return (
-      <div className="px-3 py-1 rounded-full text-sm font-medium text-gray-600 bg-gray-100">
+      <div className="px-3 py-1 rounded-full text-xs font-medium text-gray-800 bg-gray-100/80 border border-gray-300/50 backdrop-blur-sm">
         <div className="flex items-center space-x-2">
           <span className="w-2 h-2 rounded-full bg-gray-400" />
           <span>Loading...</span>
@@ -83,12 +83,12 @@ export const NetworkStatus = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor()}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getStatusColor()}`}
     >
       <div className="flex items-center space-x-2">
         <span className={`w-2 h-2 rounded-full ${
-          status === 'connected' ? 'bg-green-600' :
-          status === 'error' ? 'bg-red-600' : 'bg-gray-600'
+          status === 'connected' ? (latency > 1000 ? 'bg-yellow-600' : 'bg-green-600') :
+          status === 'error' ? 'bg-red-600' : 'bg-gray-400'
         }`} />
         <span>{getStatusText()}</span>
       </div>

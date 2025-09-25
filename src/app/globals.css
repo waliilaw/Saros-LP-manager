@@ -2,13 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force full screen with no margins or padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* Custom Font Definitions */
+@font-face {
+  font-family: 'CustomFont';
+  src: url('/font/UltraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CustomFont';
+  src: url('/font/Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CustomFont';
+  src: url('/font/Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CustomFont';
+  src: url('/font/UltraBold.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
+  * {
+    font-family: 'CustomFont', sans-serif;
+  }
+
   body {
-    @apply bg-gray-50;
+    @apply bg-transparent overflow-x-hidden;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 400;
+  }
+
+  /* Force video to stretch and fill entire screen */
+  .video-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: -1 !important;
+    overflow: hidden !important;
+  }
+
+  .vimeo-background {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    border: none !important;
+    object-fit: cover !important;
+    pointer-events: none !important;
+  }
+
+  /* Force stretch on all screen sizes */
+  @media screen and (max-width: 1920px) {
+    .vimeo-background {
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+  }
+
+  @media screen and (max-width: 768px) {
+    .vimeo-background {
+      width: 100vw !important;
+      height: 100vh !important;
+      min-width: 100vw !important;
+      min-height: 100vh !important;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold */
   }
 }
 
@@ -20,15 +114,21 @@
   }
 
   .metric-title {
-    @apply text-sm font-mono font-medium text-gray-500 uppercase tracking-wider;
+    @apply text-sm uppercase tracking-wider text-gray-500;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold for titles */
   }
 
   .metric-value {
-    @apply text-3xl font-serif font-bold text-gray-900 mt-2;
+    @apply text-3xl text-gray-900 mt-2;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 900; /* UltraBold for values */
   }
 
   .metric-subvalue {
-    @apply text-sm text-gray-600 font-medium mt-1 italic;
+    @apply text-sm text-gray-600 mt-1;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 400; /* Regular */
   }
 
   .chart-container {
@@ -37,27 +137,37 @@
   }
 
   .chart-title {
-    @apply text-xl font-serif font-bold text-gray-900 mb-6;
+    @apply text-xl text-gray-900 mb-6;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold */
   }
 
   .button-primary {
     @apply px-6 py-3 bg-saros-blue-600 text-white rounded-lg 
            hover:bg-saros-blue-700 transition-all duration-300 
-           shadow-sm hover:shadow-md font-medium;
+           shadow-sm hover:shadow-md;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold */
   }
 
   .button-secondary {
     @apply px-6 py-3 bg-white text-gray-700 border border-gray-200 
            rounded-lg hover:bg-gray-50 transition-all duration-300 
-           shadow-sm hover:shadow-md font-medium;
+           shadow-sm hover:shadow-md;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold */
   }
 
   .dashboard-title {
-    @apply text-4xl font-serif font-bold text-gray-900 mb-2;
+    @apply text-4xl text-gray-900 mb-2;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 900; /* UltraBold */
   }
 
   .dashboard-subtitle {
-    @apply text-lg text-gray-600 font-normal italic mb-12;
+    @apply text-lg text-gray-600 mb-12;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 200; /* UltraLight */
   }
 
   .stats-grid {
@@ -69,10 +179,255 @@
   }
 
   .performance-title {
-    @apply text-3xl font-serif font-bold text-gray-900 mb-8;
+    @apply text-3xl text-gray-900 mb-8;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 900; /* UltraBold */
   }
 
   .charts-grid {
     @apply grid grid-cols-1 lg:grid-cols-2 gap-8;
   }
+
+  .header__background {
+    border-radius: 22px;
+    left: -16px;
+    z-index: 0;
+    width: calc(100% + 32px);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: absolute;
+    top: 0;
+    height: 100%;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+  }
+
+  .nav-link {
+    @apply text-gray-800 hover:text-gray-900 text-sm transition-all duration-200;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700; /* Bold */
+    position: relative;
+  }
+
+  .nav-link:hover {
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: rgba(2, 3, 3, 0.8);
+    transition: width 0.3s ease;
+  }
+
+  .nav-link:hover::after {
+    width: 100%;
+  }
+
+  .footer__background {
+    border-radius: 22px;
+    left: -16px;
+    z-index: 0;
+    width: calc(100% + 32px);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: absolute;
+    top: 0;
+    height: 100%;
+    box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.2);
+  }
+
+  .footer-link {
+    color: #1f2937; /* gray-800 */
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 400; /* Regular */
+    transition: all 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: #111827; /* gray-900 */
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Consistent glassmorphism container for all components */
+  .glass-container {
+    position: relative;
+    max-width: 80rem; /* max-w-7xl - same as header */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .glass-container__background {
+    border-radius: 22px;
+    left: -16px;
+    z-index: 0;
+    width: calc(100% + 32px);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: absolute;
+    top: 0;
+    height: 100%;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+  }
+
+  .glass-content {
+    position: relative;
+    z-index: 10;
+    padding: 2rem;
+  }
+
+  /* Improved button styles */
+  .btn-primary {
+    padding: 0.5rem 1.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+    color: white;
+    border-radius: 12px;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    min-width: auto;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9));
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    padding: 0.5rem 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    color: #374151;
+    border-radius: 12px;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: auto;
+    white-space: nowrap;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(249, 250, 251, 0.9);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    color: #1f2937;
+  }
+
+  /* Form and Input Styling */
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(156, 163, 175, 0.4);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-1px);
+  }
+
+  .form-input::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: #1f2937;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(156, 163, 175, 0.4);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+  }
+
+  .form-select:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-family: 'CustomFont', sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #1f2937;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+}
+
+/* Custom Font Utility Classes */
+.font-ultralight {
+  font-family: 'CustomFont', sans-serif !important;
+  font-weight: 200 !important; /* UltraLight */
+}
+
+.font-regular {
+  font-family: 'CustomFont', sans-serif !important;
+  font-weight: 400 !important; /* Regular */
+}
+
+.font-bold {
+  font-family: 'CustomFont', sans-serif !important;
+  font-weight: 700 !important; /* Bold */
+}
+
+.font-ultrabold {
+  font-family: 'CustomFont', sans-serif !important;
+  font-weight: 900 !important; /* UltraBold */
 }
