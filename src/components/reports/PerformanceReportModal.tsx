@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePositions } from '@/context/PositionContext';
-import { ReportGenerator, PerformanceReport } from '@/lib/saros/reports';
+import { ReportsService, PerformanceReport } from '@/lib/saros/reports';
 import { formatDate } from '@/lib/utils';
 
 interface PerformanceReportModalProps {
@@ -16,7 +16,7 @@ export function PerformanceReportModal({ onClose }: PerformanceReportModalProps)
         end: new Date().toISOString().split('T')[0],
     });
 
-    const reportGenerator = new ReportGenerator();
+    const reportGenerator = new ReportsService();
 
     const handleDownload = () => {
         const filteredReports = reports.filter(report => 

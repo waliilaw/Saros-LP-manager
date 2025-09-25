@@ -20,6 +20,7 @@ interface WalletContextType {
   connection: Connection;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  signAndSendTransaction: (transaction: any) => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
@@ -27,9 +28,13 @@ const WalletContext = createContext<WalletContextType | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [wallet] = useState(() => new PhantomWalletAdapter());
   const [connecting, setConnecting] = useState(false);
-  const [connection] = useState(
-    () => new Connection(SOLANA_RPC_ENDPOINT || `https://api.${SOLANA_NETWORK}.solana.com`)
-  );
+  const [connection] = useState(() => {
+    // Only create connection on client side
+    if (typeof window === 'undefined') {
+      return null as any;
+    }
+    return new Connection(SOLANA_RPC_ENDPOINT);
+  });
 
   const connect = useCallback(async () => {
     try {
@@ -51,6 +56,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, [wallet]);
+
+  const signAndSendTransaction = useCallback(async (transaction: any) => {
+    if (!connection) {
+      throw new Error('Connection not available');
+    }
+    return await wallet.signAndSendTransaction(connection, transaction);
+  }, [wallet, connection]);
 
   // Auto-connect if previously connected
   useEffect(() => {
@@ -79,6 +91,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         connection,
         connect,
         disconnect,
+        signAndSendTransaction,
       }}
     >
       {children}

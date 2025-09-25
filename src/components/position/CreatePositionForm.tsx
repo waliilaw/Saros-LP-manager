@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { usePositions } from '@/context/PositionContext';
 import { PublicKey } from '@solana/web3.js';
@@ -17,14 +17,32 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   onError,
 }) => {
   const { connection, publicKey, connected } = useWallet();
-  const { dlmmService } : any  = usePositions();
+  const { 
+    createPosition, 
+    selectedPool, 
+    setSelectedPool, 
+    loading: contextLoading,
+    error: contextError 
+  }: any = usePositions();
+
+  // We need to get dlmmService directly from SDK for fetching pools and quotes
+  const [dlmmService, setDlmmService] = useState<any>(null);
+  
+  // Initialize dlmm service
+  useEffect(() => {
+    if (connection) {
+      import('@/lib/saros/dlmm-service').then(({ SarosDLMMService }) => {
+        setDlmmService(new SarosDLMMService(connection));
+      });
+    }
+  }, [connection]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pools, setPools] = useState<string[]>([]);
   const [loadingPools, setLoadingPools] = useState(false);
-  const [selectedPool, setSelectedPool] = useState('');
   const [quote, setQuote] = useState<null | { amountIn: string; amountOut: string; priceImpact: number }>(null);
   const [quoting, setQuoting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     tokenA: '',
@@ -44,10 +62,11 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   };
 
   const handleLoadPools = async () => {
+    if (!dlmmService) return;
     try {
       setLoadingPools(true);
       setError(null);
-      const list = await (dlmmService as any).fetchPoolAddresses();
+      const list = await dlmmService.fetchPoolAddresses();
       setPools(list || []);
     } catch (err) {
       console.error('Failed to fetch pools', err);
@@ -59,11 +78,11 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
 
   const handleSelectPool = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pool = e.target.value;
-    setSelectedPool(pool);
-    if (!pool) return;
+    setSelectedPool(pool); // Use the global setter
+    if (!pool || !dlmmService) return;
     try {
       setError(null);
-      const meta = await (dlmmService as any).getPoolMetadata(pool);
+      const meta = await dlmmService.getPoolMetadata(pool);
       if (meta?.baseMint && meta?.quoteMint) {
         setFormData(prev => ({
           ...prev,
@@ -79,7 +98,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
 
   const handlePreviewQuote = async () => {
     setQuote(null);
-    if (!selectedPool) {
+    if (!selectedPool || !dlmmService) {
       setError('Select a pool first');
       return;
     }
@@ -90,7 +109,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     try {
       setQuoting(true);
       setError(null);
-      const meta = await (dlmmService as any).getPoolMetadata(selectedPool);
+      const meta = await dlmmService.getPoolMetadata(selectedPool);
       if (!meta?.baseMint || !meta?.quoteMint || !meta?.extra) {
         throw new Error('Pool metadata incomplete');
       }
@@ -100,7 +119,7 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       const tokenQuoteDecimal = meta.extra.tokenQuoteDecimal ?? 6;
       const uiAmount = Number(formData.amount);
       const amount = BigInt(Math.floor(uiAmount * Math.pow(10, tokenBaseDecimal)));
-      const res = await (dlmmService as any).getQuote({
+      const res = await dlmmService.getQuote({
         pair: selectedPool,
         tokenBase,
         tokenQuote,
@@ -167,13 +186,40 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     }
 
     if (!validateForm()) return;
+    
+    if (!selectedPool) {
+      setError('Please select a pool first');
+      return;
+    }
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      // Temporarily disable on-chain creation until SDK flow is wired
-      throw new Error('On-chain position creation coming soon. Use Preview Quote meanwhile.');
+      const result = await createPosition({
+        tokenA: formData.tokenA,
+        tokenB: formData.tokenB,
+        lowerBinId: Number(formData.lowerBinId),
+        upperBinId: Number(formData.upperBinId),
+        amount: Number(formData.amount),
+        isTokenA: typeof formData.isTokenA === 'boolean' ? formData.isTokenA : formData.isTokenA === 'true',
+      });
+
+      if (result) {
+        setSuccess(`Position created successfully! Signature: ${result}`);
+        // Reset form
+        setFormData({
+          tokenA: '',
+          tokenB: '',
+          amount: '',
+          isTokenA: true,
+          lowerBinId: '',
+          upperBinId: '',
+        });
+        setQuote(null);
+        onSuccess?.();
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
       setError(errorMessage);
@@ -196,6 +242,22 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       {error && (
         <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
+          {success}
+          <div className="mt-2">
+            <a
+              href={`https://explorer.solana.com/tx/${success.split(': ')[1]}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              View on Solana Explorer
+            </a>
+          </div>
         </div>
       )}
 

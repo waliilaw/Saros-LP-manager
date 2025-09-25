@@ -25,7 +25,7 @@ export class RebalancingStrategy implements IRebalancingStrategy {
     }
 
     public async checkAndExecute(position: IDLMMPosition, metrics: IPositionMetrics): Promise<void> {
-        const health = await this.healthMonitor.calculateHealth(position, metrics);
+        const health = await this.healthMonitor.evaluateHealth(metrics);
 
         if (this.shouldAdjustRange(health)) {
             await this.adjustPositionRange(position, metrics);
@@ -40,32 +40,19 @@ export class RebalancingStrategy implements IRebalancingStrategy {
         }
     }
 
-    public async adjustPositionRange(position: IDLMMPosition, metrics: any ): Promise<void> {
-        const currentPrice = metrics.priceRange.current;
-        const newLowerBinId = Math.floor(currentPrice * 0.9); // 10% below current price
-        const newUpperBinId = Math.ceil(currentPrice * 1.1); // 10% above current price
-
-        await this.dlmmService.adjustPosition({
-            position,
-            newLowerBinId,
-            newUpperBinId
-        });
+    public async adjustPositionRange(position: IDLMMPosition, metrics: any): Promise<void> {
+        // TODO: Temporarily disabled for demo - would need payer and signAndSendTransaction parameters
+        console.log('adjustPositionRange called but disabled for demo');
     }
 
-    public async addLiquidity(position: IDLMMPosition, metrics: any ): Promise<void> {
-        const optimalAmount = metrics.totalValueLocked * 0.1; // Add 10% of current TVL
-        await this.dlmmService.adjustPosition({
-            position,
-            addAmount: optimalAmount
-        });
+    public async addLiquidity(position: IDLMMPosition, metrics: any): Promise<void> {
+        // TODO: Temporarily disabled for demo - would need payer and signAndSendTransaction parameters
+        console.log('addLiquidity called but disabled for demo');
     }
 
     public async removeLiquidity(position: IDLMMPosition, metrics: any): Promise<void> {
-        const removeAmount = metrics.totalValueLocked * 0.2; // Remove 20% of current TVL
-        await this.dlmmService.adjustPosition({
-            position,
-            removeAmount
-        });
+        // TODO: Temporarily disabled for demo - would need payer and signAndSendTransaction parameters
+        console.log('removeLiquidity called but disabled for demo');
     }
 
     private shouldAdjustRange(health: IHealthMetrics): boolean {

@@ -9,6 +9,11 @@ export const NetworkStatus = () => {
   const { connection } = useWallet();
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [latency, setLatency] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -62,6 +67,17 @@ export const NetworkStatus = () => {
         return 'Connecting...';
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="px-3 py-1 rounded-full text-sm font-medium text-gray-600 bg-gray-100">
+        <div className="flex items-center space-x-2">
+          <span className="w-2 h-2 rounded-full bg-gray-400" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

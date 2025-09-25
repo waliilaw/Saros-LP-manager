@@ -2,9 +2,23 @@
 
 import { motion } from 'framer-motion';
 import { useWallet } from '@/context/WalletContext';
+import { useEffect, useState } from 'react';
 
 export const WalletButton = () => {
   const { publicKey, connected, connecting, connect, disconnect } = useWallet();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button className="px-4 py-2 rounded-lg font-medium shadow-sm bg-gray-100 text-gray-400">
+        Loading...
+      </button>
+    );
+  }
 
   const handleClick = async () => {
     try {

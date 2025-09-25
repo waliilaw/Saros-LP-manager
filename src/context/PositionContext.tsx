@@ -16,6 +16,8 @@ interface PositionContextType {
     positionMetrics: Map<string, IPositionMetrics>;
     loading: boolean;
     error: string | null;
+    selectedPool: string | null;
+    setSelectedPool: (pool: string | null) => void;
     refreshPositions: () => Promise<void>;
     createPosition: (params: CreatePositionParams) => Promise<string | null>;
     adjustPosition: (params: AdjustPositionParams) => Promise<boolean>;
@@ -44,11 +46,12 @@ interface AdjustPositionParams {
 const PositionContext = createContext<PositionContextType | null>(null) ;
 
 export function PositionProvider({ children }: { children: ReactNode }) {
-    const { publicKey, connected } = useWallet();
+    const { publicKey, connected, signAndSendTransaction } = useWallet();
     const [positions, setPositions] = useState<IDLMMPosition[]>([]);
     const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPool, setSelectedPool] = useState<string | null>(null);
 
     // Initialize services
     const connection = useMemo(() => {
@@ -89,17 +92,26 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             setError(null);
             
             if (!dlmmService || !positionManager) {
-                setError('Services not initialized');
+                // Don't show error immediately, services might still be initializing
+                setLoading(false);
                 return;
             }
             if (!connected || !publicKey) {
-                setError('Wallet not connected');
+                // Only show error if user has attempted to connect but failed
+                // Don't show error on initial load when wallet isn't connected yet
+                setLoading(false);
                 return;
             }
             
-            // Choose a default pair (first available pool) for now
-            const pools = await dlmmService.fetchPoolAddresses();
-            const pair = pools && pools.length > 0 ? pools[0] : null;
+            // Use selected pool or choose default (first available pool)
+            let pair = selectedPool;
+            if (!pair) {
+                const pools = await dlmmService.fetchPoolAddresses();
+                pair = pools && pools.length > 0 ? pools[0] : null;
+                if (pair && !selectedPool) {
+                    setSelectedPool(pair);
+                }
+            }
             if (!pair) {
                 setPositions([]);
                 setPositionMetrics(new Map());
@@ -145,12 +157,15 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             }
 
             const position = await dlmmService.createPosition({
+                selectedPool: selectedPool!,
                 tokenA: params.tokenA,
                 tokenB: params.tokenB,
                 lowerBinId: params.lowerBinId,
                 upperBinId: params.upperBinId,
                 amount: params.amount,
-                isTokenA: params.isTokenA
+                isTokenA: params.isTokenA,
+                payer: publicKey!.toString(),
+                signAndSendTransaction,
             });
 
             if (!position) {
@@ -187,7 +202,9 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 newLowerBinId: params.newLowerBinId,
                 newUpperBinId: params.newUpperBinId,
                 addAmount: params.addAmount,
-                removeAmount: params.removeAmount
+                removeAmount: params.removeAmount,
+                payer: publicKey!.toString(),
+                signAndSendTransaction,
             });
 
             if (success) {
@@ -214,6 +231,8 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 positionMetrics,
                 loading,
                 error,
+                selectedPool,
+                setSelectedPool,
                 refreshPositions,
                 createPosition,
                 adjustPosition,

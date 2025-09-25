@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { usePositions } from '@/context/PositionContext';
+import { useWallet } from '@/context/WalletContext';
 import { PerformanceChart } from '../charts/PerformanceChart';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 import { useMemo } from 'react';
@@ -37,6 +38,7 @@ interface DashboardMetrics {
 
 export const AnalyticsDashboard = () => {
   const { positions, positionMetrics, loading, error } = usePositions();
+  const { connected, publicKey, connect, connecting } = useWallet();
 
   const metrics = useMemo<DashboardMetrics>(() => {
     const totalValueLocked = positions.reduce((sum, pos) => sum + (pos.liquidity || 0), 0);
@@ -94,10 +96,46 @@ export const AnalyticsDashboard = () => {
     );
   }
 
+  // Show wallet connection prompt if not connected
+  if (!connected || !publicKey) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="text-lg text-gray-600">Connect your wallet to view your positions</div>
+          <button
+            onClick={connect}
+            disabled={connecting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {connecting ? 'Connecting...' : 'Connect Wallet'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
+  // Show empty state when wallet is connected but no positions
+  if (!loading && positions.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="text-lg text-gray-600">No positions found</div>
+          <div className="text-sm text-gray-500">Create your first liquidity position to get started</div>
+          <a
+            href="/setup"
+            className="inline-block px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Create Position
+          </a>
+        </div>
       </div>
     );
   }

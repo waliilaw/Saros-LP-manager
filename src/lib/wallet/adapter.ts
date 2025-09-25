@@ -111,4 +111,16 @@ export class PhantomWalletAdapter implements WalletAdapter {
       throw error;
     }
   }
+
+  async signAndSendTransaction(connection: any, transaction: Transaction): Promise<string> {
+    try {
+      const signedTx = await this.signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      await connection.confirmTransaction(signature);
+      return signature;
+    } catch (error) {
+      console.error('Error signing and sending transaction:', error);
+      throw error;
+    }
+  }
 }
