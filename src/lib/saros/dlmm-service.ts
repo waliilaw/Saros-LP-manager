@@ -30,27 +30,37 @@ export class SarosDLMMService {
     payer: string;
     signAndSendTransaction: (tx: any) => Promise<string>;
   }): Promise<any> {
+    console.log('=== DLMM Service createPosition called ===');
+    console.log('Input params:', params);
+    
     try {
       // Get pool metadata to understand decimals and active bin
+      console.log('Fetching pool metadata for:', params.selectedPool);
       const poolMetadata = await this.getPoolMetadata(params.selectedPool);
       if (!poolMetadata) {
         throw new Error('Could not fetch pool metadata');
       }
-
-      // Create a new position mint (Token-2022)
-      const { Keypair, SystemProgram, Transaction } = await import('@solana/web3.js');
-      const positionMint = Keypair.generate();
 
       // Calculate bin array index from active ID (simplified for demo)
       const ACTIVE_ID = poolMetadata.activeId || 0;
       const BIN_ARRAY_SIZE = 4096; // From SDK constants
       const binArrayIndex = Math.floor(ACTIVE_ID / BIN_ARRAY_SIZE);
 
-      // Create transaction
+      // Create a new position mint (required by SDK)
+      const { Keypair, Transaction } = await import('@solana/web3.js');
+      const positionMint = Keypair.generate();
       const transaction = new Transaction();
+      
+      console.log('Creating position with mint:', positionMint.publicKey.toString());
 
-      // Use SDK's createPosition method
-      await this.lb.createPosition({
+      console.log('Pool metadata:', poolMetadata);
+      console.log('ACTIVE_ID:', ACTIVE_ID);
+      console.log('Calculated relativeBinIdLeft:', params.lowerBinId - ACTIVE_ID);
+      console.log('Calculated relativeBinIdRight:', params.upperBinId - ACTIVE_ID);
+      console.log('binArrayIndex:', binArrayIndex);
+
+      // Use SDK's createPosition method with proper position mint
+      const createPositionParams = {
         payer: new PublicKey(params.payer),
         relativeBinIdLeft: params.lowerBinId - ACTIVE_ID,
         relativeBinIdRight: params.upperBinId - ACTIVE_ID,
@@ -58,10 +68,36 @@ export class SarosDLMMService {
         binArrayIndex,
         positionMint: positionMint.publicKey,
         transaction,
-      } as any);
+      };
+      
+      console.log('Creating position with params:', createPositionParams);
+      
+      await this.lb.createPosition(createPositionParams as any);
 
-      // Sign and send the transaction
+      console.log('Position creation SDK call completed, transaction:', transaction);
+      
+      // Check if transaction has instructions
+      if (!transaction.instructions || transaction.instructions.length === 0) {
+        throw new Error('No instructions added to transaction by SDK');
+      }
+
+      // Get recent blockhash - CRITICAL for transaction validity
+      console.log('Getting recent blockhash...');
+      const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      transaction.lastValidBlockHeight = lastValidBlockHeight;
+      transaction.feePayer = new PublicKey(params.payer);
+      
+      console.log('Transaction prepared with blockhash:', blockhash);
+      
+      // Sign the transaction with the position mint first (partial sign)
+      console.log('Signing transaction with position mint...');
+      transaction.partialSign(positionMint);
+
+      // Sign and send the transaction (wallet will sign with user's key)
+      console.log('Signing and sending transaction with user wallet...');
       const signature = await params.signAndSendTransaction(transaction);
+      console.log('Transaction signed successfully:', signature);
 
       console.log(`Position created successfully. Signature: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
 

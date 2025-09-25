@@ -44,6 +44,13 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   const [quoting, setQuoting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Watch for context errors
+  useEffect(() => {
+    if (contextError && !error) {
+      setError(`Context Error: ${contextError}`);
+    }
+  }, [contextError, error]);
+
   const [formData, setFormData] = useState({
     tokenA: '',
     tokenB: '',
@@ -197,6 +204,16 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     setSuccess(null);
 
     try {
+      console.log('Starting position creation with params:', {
+        tokenA: formData.tokenA,
+        tokenB: formData.tokenB,
+        lowerBinId: Number(formData.lowerBinId),
+        upperBinId: Number(formData.upperBinId),
+        amount: Number(formData.amount),
+        isTokenA: typeof formData.isTokenA === 'boolean' ? formData.isTokenA : formData.isTokenA === 'true',
+        selectedPool
+      });
+
       const result = await createPosition({
         tokenA: formData.tokenA,
         tokenB: formData.tokenB,
@@ -205,6 +222,8 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
         amount: Number(formData.amount),
         isTokenA: typeof formData.isTokenA === 'boolean' ? formData.isTokenA : formData.isTokenA === 'true',
       });
+
+      console.log('Position creation result:', result);
 
       if (result) {
         setSuccess(`Position created successfully! Signature: ${result}`);
@@ -219,8 +238,16 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
         });
         setQuote(null);
         onSuccess?.();
+      } else {
+        // Check if there's an error in the context
+        if (contextError) {
+          setError(`Position creation failed: ${contextError}`);
+        } else {
+          setError('Position creation failed - no result returned');
+        }
       }
     } catch (err) {
+      console.error('Position creation error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
       setError(errorMessage);
       onError?.(err as Error);

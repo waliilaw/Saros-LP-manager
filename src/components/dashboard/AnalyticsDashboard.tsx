@@ -38,6 +38,12 @@ interface DashboardMetrics {
 
 export const AnalyticsDashboard = () => {
   const { positions, positionMetrics, loading, error } = usePositions();
+  
+  console.log('=== AnalyticsDashboard ===');
+  console.log('Positions:', positions);
+  console.log('Positions length:', positions.length);
+  console.log('Loading:', loading);
+  console.log('Error:', error);
   const { connected, publicKey, connect, connecting } = useWallet();
 
   const metrics = useMemo<DashboardMetrics>(() => {
@@ -100,12 +106,12 @@ export const AnalyticsDashboard = () => {
   if (!connected || !publicKey) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4 bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-lg">
-          <div className="text-lg text-gray-800">Connect your wallet to view your positions</div>
+        <div className="text-center space-y-4">
+          <div className="text-lg text-gray-600">Connect your wallet to view your positions</div>
           <button
             onClick={connect}
             disabled={connecting}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 shadow-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>

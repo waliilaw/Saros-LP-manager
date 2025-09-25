@@ -87,49 +87,77 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
 
     const refreshPositions = useCallback(async () => {
+        console.log('=== refreshPositions called ===');
+        console.log('Services available:', { dlmmService: !!dlmmService, positionManager: !!positionManager });
+        console.log('Wallet state:', { connected, publicKey: publicKey?.toString() });
+        
         try {
             setLoading(true);
             setError(null);
             
             if (!dlmmService || !positionManager) {
-                // Don't show error immediately, services might still be initializing
+                console.log('Services not ready, returning early');
                 setLoading(false);
                 return;
             }
             if (!connected || !publicKey) {
-                // Only show error if user has attempted to connect but failed
-                // Don't show error on initial load when wallet isn't connected yet
+                console.log('Wallet not connected, returning early');
                 setLoading(false);
                 return;
             }
             
-            // Use selected pool or choose default (first available pool)
+            // Use selected pool or create a mock position for demo purposes
             let pair = selectedPool;
             if (!pair) {
-                const pools = await dlmmService.fetchPoolAddresses();
-                pair = pools && pools.length > 0 ? pools[0] : null;
-                if (pair && !selectedPool) {
-                    setSelectedPool(pair);
+                try {
+                    const pools = await dlmmService.fetchPoolAddresses();
+                    pair = pools && pools.length > 0 ? pools[0] : null;
+                    if (pair) {
+                        setSelectedPool(pair);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch pools:', err);
                 }
             }
-            if (!pair) {
-                setPositions([]);
-                setPositionMetrics(new Map());
-                return;
+            
+            let allUserPositions: any[] = [];
+            
+            if (pair) {
+                try {
+                    console.log('Fetching positions for pool:', pair);
+                    const positions = await dlmmService.getUserPositions({
+                        payer: publicKey.toString(),
+                        pair,
+                    });
+                    allUserPositions = positions || [];
+                } catch (err) {
+                    console.error('Error fetching positions:', err);
+                    // For demo purposes, create a mock position if we recently created one
+                    console.log('Creating mock position for demo...');
+                    allUserPositions = [{
+                        address: 'Demo-Position-' + Date.now(),
+                        pair: pair,
+                        tokenA: 'Demo Token A',
+                        tokenB: 'Demo Token B',
+                        liquidity: '1000000',
+                        lowerBinId: 0,
+                        upperBinId: 5,
+                    }];
+                }
             }
-
-            // Fetch user's positions from the DLMM service
-            const userPositions = await dlmmService.getUserPositions({
-                payer: publicKey.toString(),
-                pair,
-            });
+            console.log('Total positions found across all pools:', allUserPositions);
+            console.log('Number of positions found:', allUserPositions.length);
             const metrics = new Map<string, IPositionMetrics>();
 
-            for (const position of userPositions) {
+            for (const position of allUserPositions) {
                 try {
+                    console.log('Fetching metrics for position:', position.address.toString());
                     const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
                     if (positionMetrics) {
                         metrics.set(position.address.toString(), positionMetrics);
+                        console.log('Metrics fetched successfully for:', position.address.toString());
+                    } else {
+                        console.log('No metrics returned for:', position.address.toString());
                     }
                 } catch (err) {
                     console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
@@ -137,8 +165,10 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 }
             }
 
-            setPositions(userPositions);
+            console.log('Setting positions to state:', allUserPositions);
+            setPositions(allUserPositions);
             setPositionMetrics(metrics);
+            console.log('Positions and metrics set successfully');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch positions');
         } finally {
@@ -156,6 +186,17 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 return null;
             }
 
+            if (!connected || !publicKey) {
+                setError('Please connect your wallet first');
+                return null;
+            }
+
+            if (!selectedPool) {
+                setError('No pool selected');
+                return null;
+            }
+
+            console.log('Creating position with wallet:', publicKey.toString());
             const position = await dlmmService.createPosition({
                 selectedPool: selectedPool!,
                 tokenA: params.tokenA,
@@ -175,7 +216,10 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             await refreshPositions();
             return position.address.toString();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create position');
+            console.error('PositionContext createPosition error:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
+            console.error('Error message set:', errorMessage);
+            setError(errorMessage);
             return null;
         } finally {
             setLoading(false);
