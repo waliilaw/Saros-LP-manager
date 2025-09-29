@@ -63,7 +63,43 @@ export function PositionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setIsClient(true);
+    // Load positions from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const savedPositions = localStorage.getItem('saros-positions');
+      const savedMetrics = localStorage.getItem('saros-metrics');
+      if (savedPositions) {
+        try {
+          setPositions(JSON.parse(savedPositions));
+        } catch (e) {
+          console.error('Failed to load positions from localStorage', e);
+        }
+      }
+      if (savedMetrics) {
+        try {
+          const metricsObj = JSON.parse(savedMetrics);
+          const metricsMap: any = new Map(Object.entries(metricsObj));
+          setPositionMetrics(metricsMap);
+        } catch (e) {
+          console.error('Failed to load metrics from localStorage', e);
+        }
+      }
+    }
   }, []);
+
+  // Save positions to localStorage whenever they change
+  useEffect(() => {
+    if (isClient && positions.length > 0) {
+      localStorage.setItem('saros-positions', JSON.stringify(positions));
+    }
+  }, [positions, isClient]);
+
+  // Save metrics to localStorage whenever they change
+  useEffect(() => {
+    if (isClient && positionMetrics.size > 0) {
+      const metricsObj = Object.fromEntries(positionMetrics);
+      localStorage.setItem('saros-metrics', JSON.stringify(metricsObj));
+    }
+  }, [positionMetrics, isClient]);
 
   // Initialize services
   const dlmmService = useMemo(() => {
@@ -71,7 +107,7 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     return new SarosDLMMService(connection);
   }, [connection, isClient]);
 
-  const positionManager = useMemo(() => {
+  const positionManager : any  = useMemo(() => {
     if (!dlmmService) return null;
     return new PositionManager(dlmmService);
   }, [dlmmService]);
@@ -117,22 +153,16 @@ export function PositionProvider({ children }: { children: ReactNode }) {
 
       if (pair) {
         try {
+          console.log('Fetching positions for:', { payer: publicKey.toString(), pair });
           const positions = await dlmmService.getUserPositions({
             payer: publicKey.toString(),
             pair,
           });
+          console.log('Fetched positions:', positions);
           allUserPositions = positions || [];
         } catch (err) {
           console.error('Error fetching positions:', err);
-          allUserPositions = [{
-            address: 'Demo-Position-' + Date.now(),
-            pair: pair,
-            tokenA: 'Demo Token A',
-            tokenB: 'Demo Token B',
-            liquidity: '1000000',
-            lowerBinId: 0,
-            upperBinId: 5,
-          }];
+          allUserPositions = [];
         }
       }
 
@@ -140,12 +170,17 @@ export function PositionProvider({ children }: { children: ReactNode }) {
 
       for (const position of allUserPositions) {
         try {
+          console.log(`Fetching metrics for position: ${position.address.toString()}`);
           const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
           if (positionMetrics) {
+            console.log(`Got metrics for ${position.address.toString()}:`, positionMetrics);
             metrics.set(position.address.toString(), positionMetrics);
+          } else {
+            console.log(`No metrics returned for ${position.address.toString()}, skipping`);
           }
         } catch (err) {
           console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
+          // Don't add fake metrics - just skip this position's metrics
         }
       }
 
@@ -189,7 +224,37 @@ export function PositionProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to create position');
       }
 
-      await refreshPositions();
+      // Add the newly created position to state immediately
+      const newPosition = {
+        address: result.address.toString(),
+        pair: selectedPool,
+        tokenA: params.tokenA,
+        tokenB: params.tokenB,
+        liquidity: params.amount,
+        lowerBinId: params.lowerBinId,
+        upperBinId: params.upperBinId,
+        healthFactor: 1.5,
+      };
+
+      // Update state immediately with the new position
+      setPositions((prev : any) => [...prev, newPosition]);
+
+      // Fetch real metrics for the new position
+      try {
+        const realMetrics = await positionManager.getPositionMetrics(result.address.toString());
+        if (realMetrics) {
+          setPositionMetrics(prev => {
+            const newMap = new Map(prev);
+            newMap.set(result.address.toString(), realMetrics);
+            return newMap;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch metrics for new position:', err);
+      }
+
+      // Also refresh in background to sync all data
+      refreshPositions().catch(console.error);
 
       // Return result in the correct format
       const positionResult: PositionCreationResult = {

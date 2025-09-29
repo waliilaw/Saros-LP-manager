@@ -3,10 +3,10 @@
 import { motion } from 'framer-motion';
 import { usePositions } from '@/context/PositionContext';
 import { useWallet } from '@/context/WalletContext';
-import { PerformanceChart } from '../charts/PerformanceChart';
 import { formatCurrency, formatPercentage } from '@/lib/utils';
 import { useMemo } from 'react';
 import { TimeSeriesData } from '@/lib/saros/interfaces';
+import { PositionListView } from './PositionListView';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -191,68 +191,21 @@ export const AnalyticsDashboard = () => {
         />
       </motion.div>
 
-      <div className="performance-section">
-        <motion.h2
-          className="performance-title"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          Performance History
-        </motion.h2>
-
+      <div className="mt-16">
         <motion.div
-          className="charts-grid"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.4 }}
         >
-          <div className="chart-container">
-            <h3 className="chart-title">Total Value Locked</h3>
-            <PerformanceChart 
-              data={metrics.tvlHistory}
-              title="TVL"
-              yAxisFormat={formatCurrency}
-            />
+          <div className="mb-10">
+            <h2 className="text-4xl text-gray-800 mb-2" style={{ fontFamily: 'CustomFont', fontWeight: 900 }}>
+              Active Positions
+            </h2>
+            <p className="text-gray-600" style={{ fontFamily: 'CustomFont', fontWeight: 400 }}>
+              Manage and monitor your liquidity positions
+            </p>
           </div>
-          <div className="chart-container">
-            <h3 className="chart-title">Average APR</h3>
-            <PerformanceChart 
-              data={metrics.aprHistory}
-              title="APR"
-              yAxisFormat={formatPercentage}
-            />
-          </div>
-          <div className="chart-container">
-            <h3 className="chart-title">Cumulative Fees</h3>
-            <PerformanceChart 
-              data={metrics.feesHistory}
-              title="Fees"
-              yAxisFormat={formatCurrency}
-            />
-          </div>
-          <div className="chart-container">
-            <h3 className="chart-title">Trading Volume</h3>
-            <PerformanceChart 
-              data={metrics.volumeHistory}
-              title="Volume"
-              yAxisFormat={formatCurrency}
-            />
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="mt-8 flex justify-end"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <button
-            onClick={() => {}}
-            className="button-primary"
-          >
-            Generate Report
-          </button>
+          <PositionListView />
         </motion.div>
       </div>
     </div>

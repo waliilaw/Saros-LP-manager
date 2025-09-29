@@ -291,61 +291,67 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
           </div>
         )}
 
-        {success && (
-          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
-            <pre className="whitespace-pre-wrap font-mono text-sm">{success}</pre>
-            <div className="mt-2 space-y-2">
-              {success.split('\n').map((line, index) => {
-                if (line.includes('Transaction:')) {
-                  const signature = line.split('Transaction: ')[1];
-                  return (
-                    <div key={index}>
-                      <a
-                        href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View Transaction on Solana Explorer
-                      </a>
-                    </div>
-                  );
-                }
-                if (line.includes('Position Address:')) {
-                  const address = line.split('Position Address: ')[1];
-                  return (
-                    <div key={index}>
-                      <a
-                        href={`https://explorer.solana.com/address/${address}?cluster=devnet`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View Position on Solana Explorer
-                      </a>
-                    </div>
-                  );
-                }
-                if (line.includes('Position Mint:')) {
-                  const mint = line.split('Position Mint: ')[1];
-                  return (
-                    <div key={index}>
-                      <a
-                        href={`https://explorer.solana.com/address/${mint}?cluster=devnet`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View Position Mint on Solana Explorer
-                      </a>
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
+      {success && (
+        <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
+          <pre className="whitespace-pre-wrap font-mono text-sm mb-4">{success}</pre>
+          <div className="space-y-2 mb-4">
+            {success.split('\n').map((line, index) => {
+              if (line.includes('Transaction:')) {
+                const signature = line.split('Transaction: ')[1];
+                return (
+                  <div key={index}>
+                    <a
+                      href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      View Transaction on Solana Explorer
+                    </a>
+                  </div>
+                );
+              }
+              if (line.includes('Position Address:')) {
+                const address = line.split('Position Address: ')[1];
+                return (
+                  <div key={index}>
+                    <a
+                      href={`https://explorer.solana.com/address/${address}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      View Position on Solana Explorer
+                    </a>
+                  </div>
+                );
+              }
+              if (line.includes('Position Mint:')) {
+                const mint = line.split('Position Mint: ')[1];
+                return (
+                  <div key={index}>
+                    <a
+                      href={`https://explorer.solana.com/address/${mint}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      View Position Mint on Solana Explorer
+                    </a>
+                  </div>
+                );
+              }
+              return null;
+            })}
           </div>
-        )}
+          <a
+            href="/dashboard"
+            className="btn-secondary inline-block text-center"
+          >
+            Check Dashboard
+          </a>
+        </div>
+      )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-3 gap-3 items-end">

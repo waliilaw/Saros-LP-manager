@@ -27,7 +27,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
                 href="/dashboard"
-                className="btn-primary text-center text-lg px-6 py-2"
+                className="btn-secondary text-center text-lg px-6 py-2"
               >
                 Launch Dashboard
               </a>
