@@ -7,6 +7,12 @@ import { usePositions } from '@/context/PositionContext';
 import { PublicKey } from '@solana/web3.js';
 import { SarosDLMMService } from '@/lib/saros/dlmm-service';
 
+interface PositionCreationResult {
+  signature: string;
+  positionAddress: string;
+  positionMint: string;
+}
+
 interface CreatePositionFormProps {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
@@ -217,7 +223,16 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       });
 
       if (result) {
-        setSuccess(`Position created successfully! Signature: ${result}`);
+        // Parse the result to get both signature and position address
+        const positionResult = JSON.parse(result) as PositionCreationResult;
+        
+        setSuccess(
+          `Position created successfully!\n` +
+          `Position Address: ${positionResult.positionAddress}\n` +
+          `Position Mint: ${positionResult.positionMint}\n` +
+          `Transaction: ${positionResult.signature}`
+        );
+
         // Reset form
         setFormData({
           tokenA: '',
@@ -263,186 +278,228 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 border border-gray-700/100 rounded-xl"
+      className="p-8 border-2 border-black/50 rounded-xl"
     >
-      <h2 className="text-xl text-gray-800 mb-4" style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>
-        Create New Position
-      </h2>
+      <div className="relative z-10">
+        <h2 className="text-2xl text-gray-800 mb-6" style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>
+          Create New Position
+        </h2>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
-          {success}
-          <div className="mt-2">
-            <a
-              href={`https://explorer.solana.com/tx/${success.split(': ')[1]}?cluster=devnet`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline"
-            >
-              View on Solana Explorer
-            </a>
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+            {error}
           </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-3 gap-3 items-end">
-          <div className="col-span-2">
-            <label className="form-label">Select Pool (optional)</label>
-            <select
-              value={selectedPool || ''}
-              onChange={handleSelectPool}
-              className="form-select"
-            >
-              <option value="">-- Choose a pool --</option>
-              {pools.slice(0, 100).map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={handleLoadPools}
-            disabled={loadingPools}
-            className={`btn-secondary ${loadingPools ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loadingPools ? 'Loading...' : 'Load Pools'}
-          </button>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Token A Address
-          </label>
-          <input
-            type="text"
-            name="tokenA"
-            value={formData.tokenA}
-            onChange={handleInputChange}
-            placeholder="Enter Token A address"
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Token B Address
-          </label>
-          <input
-            type="text"
-            name="tokenB"
-            value={formData.tokenB}
-            onChange={handleInputChange}
-            placeholder="Enter Token B address"
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">
-              Amount
-            </label>
-            <input
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleInputChange}
-              placeholder="Enter amount"
-              min="0"
-              step="0.000001"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              Token
-            </label>
-            <select
-              name="isTokenA"
-              value={formData.isTokenA.toString()}
-              onChange={handleInputChange}
-              className="form-select"
-            >
-              <option value="true">Token A</option>
-              <option value="false">Token B</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">
-              Lower Bin ID
-            </label>
-            <input
-              type="number"
-              name="lowerBinId"
-              value={formData.lowerBinId}
-              onChange={handleInputChange}
-              placeholder="Enter lower bin ID"
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              Upper Bin ID
-            </label>
-            <input
-              type="number"
-              name="upperBinId"
-              value={formData.upperBinId}
-              onChange={handleInputChange}
-              placeholder="Enter upper bin ID"
-              className="form-input"
-            />
-          </div>
-        </div>
-
-        <div className="pt-4">
-          <button
-            type="submit"
-            disabled={!connected || loading}
-            className={`btn-primary ${
-              !connected || loading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {loading ? 'Creating Position...' : 'Create Position'}
-          </button>
-        </div>
-
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handlePreviewQuote}
-            disabled={quoting || !selectedPool}
-            className={`btn-secondary ${quoting || !selectedPool ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {quoting ? 'Quoting...' : 'Preview Quote'}
-          </button>
-          {quote && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-800">
-              <div><span className="font-medium">Amount In:</span> {quote.amountIn}</div>
-              <div><span className="font-medium">Estimated Out:</span> {quote.amountOut}</div>
-              <div><span className="font-medium">Price Impact:</span> {(quote.priceImpact * 100).toFixed(2)}%</div>
-            </div>
-          )}
-        </div>
-
-        {!connected && (
-          <p className="mt-2 text-sm text-gray-500 text-center">
-            Connect your wallet to create a position
-          </p>
         )}
-      </form>
+
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
+            <pre className="whitespace-pre-wrap font-mono text-sm">{success}</pre>
+            <div className="mt-2 space-y-2">
+              {success.split('\n').map((line, index) => {
+                if (line.includes('Transaction:')) {
+                  const signature = line.split('Transaction: ')[1];
+                  return (
+                    <div key={index}>
+                      <a
+                        href={`https://explorer.solana.com/tx/${signature}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        View Transaction on Solana Explorer
+                      </a>
+                    </div>
+                  );
+                }
+                if (line.includes('Position Address:')) {
+                  const address = line.split('Position Address: ')[1];
+                  return (
+                    <div key={index}>
+                      <a
+                        href={`https://explorer.solana.com/address/${address}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        View Position on Solana Explorer
+                      </a>
+                    </div>
+                  );
+                }
+                if (line.includes('Position Mint:')) {
+                  const mint = line.split('Position Mint: ')[1];
+                  return (
+                    <div key={index}>
+                      <a
+                        href={`https://explorer.solana.com/address/${mint}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        View Position Mint on Solana Explorer
+                      </a>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-3 gap-3 items-end">
+            <div className="col-span-2">
+              <label className="form-label">Select Pool (optional)</label>
+              <select
+                value={selectedPool || ''}
+                onChange={handleSelectPool}
+                className="form-select"
+              >
+                <option value="">-- Choose a pool --</option>
+                {pools.slice(0, 100).map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={handleLoadPools}
+              disabled={loadingPools}
+              className={`btn-secondary ${loadingPools ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {loadingPools ? 'Loading...' : 'Load Pools'}
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Token A Address
+            </label>
+            <input
+              type="text"
+              name="tokenA"
+              value={formData.tokenA}
+              onChange={handleInputChange}
+              placeholder="Enter Token A address"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Token B Address
+            </label>
+            <input
+              type="text"
+              name="tokenB"
+              value={formData.tokenB}
+              onChange={handleInputChange}
+              placeholder="Enter Token B address"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">
+                Amount
+              </label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleInputChange}
+                placeholder="Enter amount"
+                min="0"
+                step="0.000001"
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Token
+              </label>
+              <select
+                name="isTokenA"
+                value={formData.isTokenA.toString()}
+                onChange={handleInputChange}
+                className="form-select"
+              >
+                <option value="true">Token A</option>
+                <option value="false">Token B</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">
+                Lower Bin ID
+              </label>
+              <input
+                type="number"
+                name="lowerBinId"
+                value={formData.lowerBinId}
+                onChange={handleInputChange}
+                placeholder="Enter lower bin ID"
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Upper Bin ID
+              </label>
+              <input
+                type="number"
+                name="upperBinId"
+                value={formData.upperBinId}
+                onChange={handleInputChange}
+                placeholder="Enter upper bin ID"
+                className="form-input"
+              />
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={!connected || loading}
+              className={`btn-primary ${
+                !connected || loading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {loading ? 'Creating Position...' : 'Create Position'}
+            </button>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handlePreviewQuote}
+              disabled={quoting || !selectedPool}
+              className={`btn-secondary ${quoting || !selectedPool ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {quoting ? 'Quoting...' : 'Preview Quote'}
+            </button>
+            {quote && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-800">
+                <div><span className="font-medium">Amount In:</span> {quote.amountIn}</div>
+                <div><span className="font-medium">Estimated Out:</span> {quote.amountOut}</div>
+                <div><span className="font-medium">Price Impact:</span> {(quote.priceImpact * 100).toFixed(2)}%</div>
+              </div>
+            )}
+          </div>
+
+          {!connected && (
+            <p className="mt-2 text-sm text-gray-500 text-center">
+              Connect your wallet to create a position
+            </p>
+          )}
+        </form>
+      </div>
     </motion.div>
   );
 };

@@ -5,7 +5,7 @@ import { PoolMetadata, Bin } from './automation/types';
 export interface IHealthMetrics {
   score: number;
   status: 'healthy' | 'warning' | 'critical';
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   issues: string[];
   recommendations: string[];
 }
@@ -14,13 +14,13 @@ export interface HealthCheckResult {
   score: number;
   status: 'healthy' | 'warning' | 'critical';
   issues: HealthIssue[];
-  recommendations: string[];
+    recommendations: string[];
 }
 
 export interface HealthIssue {
   type: 'deviation' | 'utilization' | 'liquidity' | 'range' | 'volatility';
   severity: 'low' | 'medium' | 'high';
-  message: string;
+    message: string;
   value: number;
   threshold: number;
 }
@@ -196,7 +196,7 @@ export class PositionHealthMonitor {
       const score = this.calculateOverallScore(issues);
       const status = this.determineHealthStatus(score);
 
-      return {
+        return {
         score,
         status,
         issues,
@@ -363,5 +363,5 @@ export class PositionHealthMonitor {
     if (score >= 80) return 'healthy';
     if (score >= 50) return 'warning';
     return 'critical';
-  }
+    }
 }

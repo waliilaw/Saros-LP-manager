@@ -11,315 +11,295 @@ import { AutomationStrategy, IRebalancingStrategy } from '@/lib/saros/automation
 import { PriceFeedService, PriceData } from '@/lib/saros/price-feed';
 import { useWallet } from '@/context/WalletContext';
 
+interface PositionCreationResult {
+  signature: string;
+  positionAddress: string;
+  positionMint: string;
+}
+
 interface PositionContextType {
-    positions: IDLMMPosition[];
-    positionMetrics: Map<string, IPositionMetrics>;
-    loading: boolean;
-    error: string | null;
-    selectedPool: string | null;
-    setSelectedPool: (pool: string | null) => void;
-    refreshPositions: () => Promise<void>;
-    createPosition: (params: CreatePositionParams) => Promise<string | null>;
-    adjustPosition: (params: AdjustPositionParams) => Promise<boolean>;
-    automationManager: AutomationManager;
-    priceFeedService: PriceFeedService;
-    tokenPrices: Map<string, PriceData>;
+  positions: IDLMMPosition[];
+  positionMetrics: Map<string, IPositionMetrics>;
+  loading: boolean;
+  error: string | null;
+  selectedPool: string | null;
+  setSelectedPool: (pool: string | null) => void;
+  refreshPositions: () => Promise<void>;
+  createPosition: (params: CreatePositionParams) => Promise<string | null>;
+  adjustPosition: (params: AdjustPositionParams) => Promise<boolean>;
+  automationManager: AutomationManager;
+  priceFeedService: PriceFeedService;
+  tokenPrices: Map<string, PriceData>;
 }
 
 interface CreatePositionParams {
-    tokenA: string;
-    tokenB: string;
-    lowerBinId: number;
-    upperBinId: number;
-    amount: number;
-    isTokenA: boolean;
+  tokenA: string;
+  tokenB: string;
+  lowerBinId: number;
+  upperBinId: number;
+  amount: number;
+  isTokenA: boolean;
 }
 
 interface AdjustPositionParams {
-    positionId: string;
-    newLowerBinId?: number;
-    newUpperBinId?: number;
-    addAmount?: number;
-    removeAmount?: number;
+  positionId: string;
+  newLowerBinId?: number;
+  newUpperBinId?: number;
+  addAmount?: number;
+  removeAmount?: number;
 }
 
 const PositionContext = createContext<PositionContextType | null>(null);
 
 export function PositionProvider({ children }: { children: ReactNode }) {
-    const [positions, setPositions] = useState<IDLMMPosition[]>([]);
-    const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedPool, setSelectedPool] = useState<string | null>(null);
-    const [isClient, setIsClient] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [positions, setPositions] = useState<IDLMMPosition[]>([]);
+  const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedPool, setSelectedPool] = useState<string | null>(null);
+  const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
+  const { connection, publicKey, connected, signAndSendTransaction } = useWallet();
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-    // Initialize services
-    const connection = useMemo(() => {
-        if (typeof window === 'undefined') return null;
-        return new Connection(SOLANA_RPC_ENDPOINT || clusterApiUrl(SOLANA_NETWORK));
-    }, []);
+  // Initialize services
+  const dlmmService = useMemo(() => {
+    if (!connection || !isClient) return null;
+    return new SarosDLMMService(connection);
+  }, [connection, isClient]);
 
-    const dlmmService = useMemo(() => {
-        if (!connection) return null;
-        return new SarosDLMMService(connection);
-    }, [connection]);
+  const positionManager = useMemo(() => {
+    if (!dlmmService) return null;
+    return new PositionManager(dlmmService);
+  }, [dlmmService]);
 
-    const positionManager = useMemo(() => {
-        if (!dlmmService) return null;
-        return new PositionManager(dlmmService);
-    }, [dlmmService]);
-    
-    const rebalancingStrategy = useMemo(() => {
-        if (!dlmmService) return null;
-        return new AutomationStrategy();
-    }, [dlmmService]);
+  const rebalancingStrategy = useMemo(() => {
+    if (!dlmmService) return null;
+    return new AutomationStrategy();
+  }, [dlmmService]);
 
-    const automationManager = useMemo(() => {
-        const manager = new AutomationManager();
-        if (rebalancingStrategy) {
-            manager.registerStrategy(rebalancingStrategy);
-        }
-        return manager;
-    }, [rebalancingStrategy]);
+  const automationManager = useMemo(() => {
+    const manager = new AutomationManager();
+    if (rebalancingStrategy) {
+      manager.registerStrategy(rebalancingStrategy);
+    }
+    return manager;
+  }, [rebalancingStrategy]);
 
-    const priceFeedService = useMemo(() => new PriceFeedService(), []);
-    const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
+  const priceFeedService = useMemo(() => new PriceFeedService(), []);
 
-    const refreshPositions = useCallback(async () => {
-        if (!isClient) return;
-
-        const wallet = useWallet();
-        const { publicKey, connected } = wallet;
-
-        try {
-            setLoading(true);
-            setError(null);
-            
-            if (!dlmmService || !positionManager) {
-                setLoading(false);
-                return;
-            }
-            if (!connected || !publicKey) {
-                setLoading(false);
-                return;
-            }
-            
-            let pair = selectedPool;
-            if (!pair) {
-                try {
-                    const pools = await dlmmService.fetchPoolAddresses();
-                    pair = pools && pools.length > 0 ? pools[0] : null;
-                    if (pair) {
-                        setSelectedPool(pair);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch pools:', err);
-                }
-            }
-            
-            let allUserPositions: any[] = [];
-            
-            if (pair) {
-                try {
-                    const positions = await dlmmService.getUserPositions({
-                        payer: publicKey.toString(),
-                        pair,
-                    });
-                    allUserPositions = positions || [];
-                } catch (err) {
-                    console.error('Error fetching positions:', err);
-                    allUserPositions = [{
-                        address: 'Demo-Position-' + Date.now(),
-                        pair: pair,
-                        tokenA: 'Demo Token A',
-                        tokenB: 'Demo Token B',
-                        liquidity: '1000000',
-                        lowerBinId: 0,
-                        upperBinId: 5,
-                    }];
-                }
-            }
-
-            const metrics = new Map<string, IPositionMetrics>();
-
-            for (const position of allUserPositions) {
-                try {
-                    const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
-                    if (positionMetrics) {
-                        metrics.set(position.address.toString(), positionMetrics);
-                    }
-                } catch (err) {
-                    console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
-                }
-            }
-
-            setPositions(allUserPositions);
-            setPositionMetrics(metrics);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch positions');
-        } finally {
-            setLoading(false);
-        }
-    }, [dlmmService, positionManager, isClient]);
-
-    const createPosition = useCallback(async (params: CreatePositionParams): Promise<string | null> => {
-        if (!isClient) return null;
-
-        const wallet = useWallet();
-        const { publicKey, connected, signAndSendTransaction } = wallet;
-
-        try {
-            setLoading(true);
-            setError(null);
-
-            if (!dlmmService) {
-                setError('Service not initialized');
-                return null;
-            }
-
-            if (!connected || !publicKey) {
-                setError('Please connect your wallet first');
-                return null;
-            }
-
-            if (!selectedPool) {
-                setError('No pool selected');
-                return null;
-            }
-
-            const position = await dlmmService.createPosition({
-                selectedPool: selectedPool!,
-                tokenA: params.tokenA,
-                tokenB: params.tokenB,
-                lowerBinId: params.lowerBinId,
-                upperBinId: params.upperBinId,
-                amount: params.amount,
-                isTokenA: params.isTokenA,
-                payer: publicKey!.toString(),
-                signAndSendTransaction,
-            });
-
-            if (!position) {
-                throw new Error('Failed to create position');
-            }
-
-            await refreshPositions();
-            return position.address.toString();
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
-            setError(errorMessage);
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, [dlmmService, refreshPositions, isClient]);
-
-    const adjustPosition = useCallback(async (params: AdjustPositionParams): Promise<boolean> => {
-        if (!isClient) return false;
-
-        const wallet = useWallet();
-        const { publicKey, signAndSendTransaction } = wallet;
-
-        try {
-            setLoading(true);
-            setError(null);
-
-            if (!dlmmService) {
-                setError('Service not initialized');
-                return false;
-            }
-
-            const position = positions.find(p => p.address.toString() === params.positionId);
-            if (!position) {
-                throw new Error('Position not found');
-            }
-
-            const result = await dlmmService.adjustPosition({
-                position: {
-                    ...position,
-                    address: position.address.toString(),
-                    pair: position.pair.toString(),
-                },
-                newLowerBinId: params.newLowerBinId,
-                newUpperBinId: params.newUpperBinId,
-                addAmount: params.addAmount,
-                removeAmount: params.removeAmount,
-                payer: publicKey!.toString(),
-                signAndSendTransaction,
-            });
-
-            if (result.success) {
-                await refreshPositions();
-            }
-
-            return result.success;
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to adjust position');
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    }, [dlmmService, positions, refreshPositions, isClient]);
-
-    useEffect(() => {
-        if (isClient) {
-            refreshPositions();
-        }
-    }, [refreshPositions, isClient]);
-
-    if (!isClient) {
-        return (
-            <PositionContext.Provider
-                value={{
-                    positions: [],
-                    positionMetrics: new Map(),
-                    loading: true,
-                    error: null,
-                    selectedPool: null,
-                    setSelectedPool: () => {},
-                    refreshPositions: async () => {},
-                    createPosition: async () => null,
-                    adjustPosition: async () => false,
-                    automationManager,
-                    priceFeedService,
-                    tokenPrices,
-                }}
-            >
-                {children}
-            </PositionContext.Provider>
-        );
+  const refreshPositions = useCallback(async () => {
+    if (!isClient || !dlmmService || !positionManager || !connected || !publicKey) {
+      return;
     }
 
+    try {
+      setLoading(true);
+      setError(null);
+
+      let pair = selectedPool;
+      if (!pair) {
+        try {
+          const pools = await dlmmService.fetchPoolAddresses();
+          pair = pools && pools.length > 0 ? pools[0] : null;
+          if (pair) {
+            setSelectedPool(pair);
+          }
+        } catch (err) {
+          console.error('Failed to fetch pools:', err);
+        }
+      }
+
+      let allUserPositions: any[] = [];
+
+      if (pair) {
+        try {
+          const positions = await dlmmService.getUserPositions({
+            payer: publicKey.toString(),
+            pair,
+          });
+          allUserPositions = positions || [];
+        } catch (err) {
+          console.error('Error fetching positions:', err);
+          allUserPositions = [{
+            address: 'Demo-Position-' + Date.now(),
+            pair: pair,
+            tokenA: 'Demo Token A',
+            tokenB: 'Demo Token B',
+            liquidity: '1000000',
+            lowerBinId: 0,
+            upperBinId: 5,
+          }];
+        }
+      }
+
+      const metrics = new Map<string, IPositionMetrics>();
+
+      for (const position of allUserPositions) {
+        try {
+          const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
+          if (positionMetrics) {
+            metrics.set(position.address.toString(), positionMetrics);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
+        }
+      }
+
+      setPositions(allUserPositions);
+      setPositionMetrics(metrics);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch positions');
+    } finally {
+      setLoading(false);
+    }
+  }, [dlmmService, positionManager, connected, publicKey, selectedPool, isClient]);
+
+  const createPosition = useCallback(async (params: CreatePositionParams): Promise<string | null> => {
+    if (!isClient || !dlmmService || !connected || !publicKey || !signAndSendTransaction) {
+      setError('Services not initialized or wallet not connected');
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!selectedPool) {
+        setError('No pool selected');
+        return null;
+      }
+
+      const result = await dlmmService.createPosition({
+        selectedPool: selectedPool,
+        tokenA: params.tokenA,
+        tokenB: params.tokenB,
+        lowerBinId: params.lowerBinId,
+        upperBinId: params.upperBinId,
+        amount: params.amount,
+        isTokenA: params.isTokenA,
+        payer: publicKey.toString(),
+        signAndSendTransaction,
+      });
+
+      if (!result) {
+        throw new Error('Failed to create position');
+      }
+
+      await refreshPositions();
+
+      // Return result in the correct format
+      const positionResult: PositionCreationResult = {
+        signature: result.signature,
+        positionAddress: result.address.toString(),
+        positionMint: result.positionMint.toString(),
+      };
+
+      return JSON.stringify(positionResult);
+    } catch (err) {
+      console.error('Position creation error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
+      setError(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [dlmmService, connected, publicKey, signAndSendTransaction, selectedPool, refreshPositions, isClient]);
+
+  const adjustPosition = useCallback(async (params: AdjustPositionParams): Promise<boolean> => {
+    if (!isClient || !dlmmService || !connected || !publicKey || !signAndSendTransaction) {
+      setError('Services not initialized or wallet not connected');
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const position = positions.find(p => p.address.toString() === params.positionId);
+      if (!position) {
+        throw new Error('Position not found');
+      }
+
+      const result = await dlmmService.adjustPosition({
+        position: {
+          ...position,
+          address: position.address.toString(),
+          pair: position.pair.toString(),
+        },
+        newLowerBinId: params.newLowerBinId,
+        newUpperBinId: params.newUpperBinId,
+        addAmount: params.addAmount,
+        removeAmount: params.removeAmount,
+        payer: publicKey.toString(),
+        signAndSendTransaction,
+      });
+
+      if (result.success) {
+        await refreshPositions();
+      }
+
+      return result.success;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to adjust position');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [dlmmService, positions, refreshPositions, connected, publicKey, signAndSendTransaction, isClient]);
+
+  if (!isClient) {
     return (
-        <PositionContext.Provider
-            value={{
-                positions,
-                positionMetrics,
-                loading,
-                error,
-                selectedPool,
-                setSelectedPool,
-                refreshPositions,
-                createPosition,
-                adjustPosition,
-                automationManager,
-                priceFeedService,
-                tokenPrices,
-            }}
-        >
-            {children}
-        </PositionContext.Provider>
+      <PositionContext.Provider
+        value={{
+          positions: [],
+          positionMetrics: new Map(),
+          loading: true,
+          error: null,
+          selectedPool: null,
+          setSelectedPool: () => {},
+          refreshPositions: async () => {},
+          createPosition: async () => null,
+          adjustPosition: async () => false,
+          automationManager,
+          priceFeedService,
+          tokenPrices,
+        }}
+      >
+        {children}
+      </PositionContext.Provider>
     );
+  }
+
+  return (
+    <PositionContext.Provider
+      value={{
+        positions,
+        positionMetrics,
+        loading,
+        error,
+        selectedPool,
+        setSelectedPool,
+        refreshPositions,
+        createPosition,
+        adjustPosition,
+        automationManager,
+        priceFeedService,
+        tokenPrices,
+      }}
+    >
+      {children}
+    </PositionContext.Provider>
+  );
 }
 
 export function usePositions() {
-    const context = useContext(PositionContext);
-    if (!context) {
-        throw new Error('usePositions must be used within a PositionProvider');
-    }
-    return context;
+  const context = useContext(PositionContext);
+  if (!context) {
+    throw new Error('usePositions must be used within a PositionProvider');
+  }
+  return context;
 }

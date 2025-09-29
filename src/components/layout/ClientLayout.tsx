@@ -8,14 +8,17 @@ import { NetworkStatus } from '@/components/common/NetworkStatus';
 export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <ClientProviders>
-      {/* Background Video - Vimeo Embed */}
+      {/* Background Video - Local rust.mp4 */}
       <div className="video-container">
-        <iframe
-          src="https://player.vimeo.com/video/1040597353?autoplay=1&loop=1&muted=1&background=1&controls=0&title=0&byline=0&portrait=0"
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
           className="vimeo-background"
-          frameBorder="0"
-          allow="autoplay; fullscreen"
-        />
+        >
+          <source src="/rust.mp4" type="video/mp4" />
+        </video>
       </div>
       
       <div className="relative z-20 min-h-screen">
@@ -117,7 +120,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               </div>
 
               {/* Bottom bar */}
-              <div className="border-t border-gray-300/30 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
+              <div className="border-t border-gray-800 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
                 <div className="text-gray-800 text-sm" style={{ fontFamily: 'CustomFont', fontWeight: 400 }}>
                   <span style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>Saros LP Manager</span> • Built with ❤️ by Wali
                 </div>

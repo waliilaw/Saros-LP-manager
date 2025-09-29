@@ -47,7 +47,7 @@ The Saros LP Manager is a sophisticated liquidity management application built o
 
 #### 2. Automated Rebalancing
 - Multiple strategies:
-  ```typescript
+```typescript
   export interface RebalanceStrategy {
     type: 'symmetric' | 'dynamic' | 'concentrated';
     targetUtilization: number;
@@ -63,7 +63,7 @@ The Saros LP Manager is a sophisticated liquidity management application built o
 
 #### 3. Position Health Monitoring
 - Real-time health score calculation:
-  ```typescript
+```typescript
   healthScore = (
     deviationScore * 0.4 +  // Distance from active bin
     coverageScore * 0.3 +   // Price range coverage
@@ -167,7 +167,7 @@ Key SDK features utilized:
 5. **Build**
    ```bash
    npm run build
-   ```
+```
 
 ## Testing Strategy
 
@@ -197,12 +197,12 @@ The application is designed to be deployed on any modern hosting platform that s
    ```
 
 2. **Build Process**
-   ```bash
+```bash
    npm run build
-   ```
+```
 
 3. **Deployment Commands**
-   ```bash
+```bash
    npm run start
    ```
 
