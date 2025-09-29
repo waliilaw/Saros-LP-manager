@@ -38,12 +38,6 @@ interface DashboardMetrics {
 
 export const AnalyticsDashboard = () => {
   const { positions, positionMetrics, loading, error } = usePositions();
-  
-  console.log('=== AnalyticsDashboard ===');
-  console.log('Positions:', positions);
-  console.log('Positions length:', positions.length);
-  console.log('Loading:', loading);
-  console.log('Error:', error);
   const { connected, publicKey, connect, connecting } = useWallet();
 
   const metrics = useMemo<DashboardMetrics>(() => {

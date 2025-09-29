@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { PhantomWalletAdapter } from '@/lib/wallet/adapter';
-import { SOLANA_NETWORK, SOLANA_RPC_ENDPOINT } from '@/lib/saros/config';
+import { SOLANA_NETWORK, SOLANA_RPC_ENDPOINT, CONNECTION_CONFIG } from '@/lib/saros/config';
 
 interface WalletContextType {
   wallet: PhantomWalletAdapter | null;
@@ -26,15 +26,20 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const [isClient, setIsClient] = useState(false);
   const [wallet, setWallet] = useState<PhantomWalletAdapter | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connection, setConnection] = useState<Connection | null>(null);
   
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Initialize wallet and connection on client side only
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const walletAdapter = new PhantomWalletAdapter();
-      const rpcConnection = new Connection(SOLANA_RPC_ENDPOINT);
+      const rpcConnection = new Connection(SOLANA_RPC_ENDPOINT, CONNECTION_CONFIG);
       setWallet(walletAdapter);
       setConnection(rpcConnection);
     }
@@ -96,16 +101,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [wallet, connect]);
 
-  // Don't render until wallet is initialized on client side
-  if (typeof window === 'undefined' || !wallet || !connection) {
+  if (!isClient) {
     return (
       <WalletContext.Provider
         value={{
-          wallet: null as any,
+          wallet: null,
           publicKey: null,
           connected: false,
           connecting: false,
-          connection: null as any,
+          connection: null,
           connect: async () => {},
           disconnect: async () => {},
           signAndSendTransaction: async () => { throw new Error('Wallet not ready'); },
@@ -120,8 +124,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     <WalletContext.Provider
       value={{
         wallet,
-        publicKey: wallet.publicKey,
-        connected: wallet.connected,
+        publicKey: wallet?.publicKey || null,
+        connected: wallet?.connected || false,
         connecting,
         connection,
         connect,

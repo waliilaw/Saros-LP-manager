@@ -294,5 +294,5 @@ export class AutomationStrategy implements IRebalancingStrategy {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
-  }
+    }
 }

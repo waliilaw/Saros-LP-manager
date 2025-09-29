@@ -1,16 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { createTestToken, requestAirdrop } from '@/lib/saros/token/utils';
-import { TransactionHelper } from '@/lib/saros/transaction/helper';
 
 export const TestTokenSetup = () => {
-  const { connection, publicKey, connected } = useWallet();
+  // All hooks must be called before any conditional returns
+  const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { connection, publicKey, connected } = useWallet();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSetup = async () => {
     if (!connected || !publicKey) {
@@ -47,6 +52,19 @@ export const TestTokenSetup = () => {
       setLoading(false);
     }
   };
+
+  // Early return for server-side rendering
+  if (!isClient) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 border border-gray-700/100 rounded-xl"
+      >
+        <div className="text-lg text-gray-600">Loading...</div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

@@ -3,40 +3,21 @@
 import { motion } from 'framer-motion';
 import { SOLANA_NETWORK } from '@/lib/saros/config';
 import { useState, useEffect } from 'react';
-
-// Use dynamic import to avoid SSR issues
-const useConnectionHook = () => {
-  const [connection, setConnection] = useState<any>(null);
-  
-  useEffect(() => {
-    // Only load connection on client side
-    if (typeof window !== 'undefined') {
-      import('@/context/WalletContext').then(({ useWallet }) => {
-        try {
-          const walletContext = useWallet();
-          setConnection(walletContext.connection);
-        } catch {
-          // Context not available, use null
-          setConnection(null);
-        }
-      });
-    }
-  }, []);
-  
-  return connection;
-};
+import { useWallet } from '@/context/WalletContext';
 
 export const NetworkStatus = () => {
-  const connection = useConnectionHook();
+  const [isClient, setIsClient] = useState(false);
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [latency, setLatency] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
+  const { connection } = useWallet();
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
+    if (!isClient) return;
+
     let mounted = true;
 
     const checkConnection = async () => {
@@ -72,16 +53,18 @@ export const NetworkStatus = () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [connection]);
+  }, [connection, isClient]);
 
   const getStatusColor = () => {
     switch (status) {
       case 'connected':
-        return latency > 1000 ? 'text-yellow-800 bg-yellow-100/80 border-yellow-300/50' : 'text-green-800 bg-green-100/80 border-green-300/50';
+        return latency > 1000 
+          ? 'text-gray-800 bg-gray-100 border-gray-300' 
+          : 'text-gray-800 bg-gray-100 border-gray-300';
       case 'error':
-        return 'text-red-800 bg-red-100/80 border-red-300/50';
+        return 'text-gray-800 bg-gray-100 border-gray-300';
       default:
-        return 'text-gray-800 bg-gray-100/80 border-gray-300/50';
+        return 'text-gray-800 bg-gray-100 border-gray-300';
     }
   };
 
@@ -96,9 +79,9 @@ export const NetworkStatus = () => {
     }
   };
 
-  if (!mounted) {
+  if (!isClient) {
     return (
-      <div className="px-3 py-1 rounded-full text-xs font-medium text-gray-800 bg-gray-100/80 border border-gray-300/50 backdrop-blur-sm">
+      <div className="px-3 py-1 rounded-full text-xs font-medium text-gray-800 bg-gray-100 border border-gray-300 backdrop-blur-sm">
         <div className="flex items-center space-x-2">
           <span className="w-2 h-2 rounded-full bg-gray-400" />
           <span>Loading...</span>
@@ -111,12 +94,12 @@ export const NetworkStatus = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getStatusColor()}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm hover:bg-gray-200 transition-colors ${getStatusColor()}`}
     >
       <div className="flex items-center space-x-2">
         <span className={`w-2 h-2 rounded-full ${
-          status === 'connected' ? (latency > 1000 ? 'bg-yellow-600' : 'bg-green-600') :
-          status === 'error' ? 'bg-red-600' : 'bg-gray-400'
+          status === 'connected' ? (latency > 1000 ? 'bg-gray-600' : 'bg-gray-800') :
+          status === 'error' ? 'bg-gray-600' : 'bg-gray-400'
         }`} />
         <span>{getStatusText()}</span>
       </div>

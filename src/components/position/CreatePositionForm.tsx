@@ -1,11 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/context/WalletContext';
 import { usePositions } from '@/context/PositionContext';
 import { PublicKey } from '@solana/web3.js';
-import { getOrCreateAssociatedTokenAccount } from '@/lib/saros/token/utils';
+import { SarosDLMMService } from '@/lib/saros/dlmm-service';
 
 interface CreatePositionFormProps {
   onSuccess?: () => void;
@@ -16,26 +16,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { connection, publicKey, connected } = useWallet();
-  const { 
-    createPosition, 
-    selectedPool, 
-    setSelectedPool, 
-    loading: contextLoading,
-    error: contextError 
-  }: any = usePositions();
-
-  // We need to get dlmmService directly from SDK for fetching pools and quotes
-  const [dlmmService, setDlmmService] = useState<any>(null);
-  
-  // Initialize dlmm service
-  useEffect(() => {
-    if (connection) {
-      import('@/lib/saros/dlmm-service').then(({ SarosDLMMService }) => {
-        setDlmmService(new SarosDLMMService(connection));
-      });
-    }
-  }, [connection]);
+  // All hooks must be called before any conditional returns
+  const [isClient, setIsClient] = useState(false);
+  const [dlmmService, setDlmmService] = useState<SarosDLMMService | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pools, setPools] = useState<string[]>([]);
@@ -43,14 +26,6 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
   const [quote, setQuote] = useState<null | { amountIn: string; amountOut: string; priceImpact: number }>(null);
   const [quoting, setQuoting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Watch for context errors
-  useEffect(() => {
-    if (contextError && !error) {
-      setError(`Context Error: ${contextError}`);
-    }
-  }, [contextError, error]);
-
   const [formData, setFormData] = useState({
     tokenA: '',
     tokenB: '',
@@ -60,15 +35,43 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     upperBinId: '',
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { connection, publicKey, connected } = useWallet();
+  const { 
+    createPosition, 
+    selectedPool, 
+    setSelectedPool, 
+    loading: contextLoading,
+    error: contextError 
+  }: any = usePositions();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Initialize dlmm service
+  useEffect(() => {
+    if (connection && isClient) {
+      const service = new SarosDLMMService(connection);
+      setDlmmService(service);
+    }
+  }, [connection, isClient]);
+
+  // Watch for context errors
+  useEffect(() => {
+    if (contextError && !error) {
+      setError(`Context Error: ${contextError}`);
+    }
+  }, [contextError, error]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }, []);
 
-  const handleLoadPools = async () => {
+  const handleLoadPools = useCallback(async () => {
     if (!dlmmService) return;
     try {
       setLoadingPools(true);
@@ -81,9 +84,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     } finally {
       setLoadingPools(false);
     }
-  };
+  }, [dlmmService]);
 
-  const handleSelectPool = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSelectPool = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pool = e.target.value;
     setSelectedPool(pool); // Use the global setter
     if (!pool || !dlmmService) return;
@@ -101,9 +104,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       console.error('Failed to fetch pool metadata', err);
       setError('Failed to fetch selected pool info');
     }
-  };
+  }, [dlmmService, setSelectedPool]);
 
-  const handlePreviewQuote = async () => {
+  const handlePreviewQuote = useCallback(async () => {
     setQuote(null);
     if (!selectedPool || !dlmmService) {
       setError('Select a pool first');
@@ -148,9 +151,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     } finally {
       setQuoting(false);
     }
-  };
+  }, [dlmmService, selectedPool, formData.amount, formData.isTokenA]);
 
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     if (!formData.tokenA || !formData.tokenB) {
       setError('Please enter both token addresses');
       return false;
@@ -183,9 +186,9 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     }
 
     return true;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!connected || !publicKey) {
       setError('Please connect your wallet first');
@@ -204,16 +207,6 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     setSuccess(null);
 
     try {
-      console.log('Starting position creation with params:', {
-        tokenA: formData.tokenA,
-        tokenB: formData.tokenB,
-        lowerBinId: Number(formData.lowerBinId),
-        upperBinId: Number(formData.upperBinId),
-        amount: Number(formData.amount),
-        isTokenA: typeof formData.isTokenA === 'boolean' ? formData.isTokenA : formData.isTokenA === 'true',
-        selectedPool
-      });
-
       const result = await createPosition({
         tokenA: formData.tokenA,
         tokenB: formData.tokenB,
@@ -222,8 +215,6 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
         amount: Number(formData.amount),
         isTokenA: typeof formData.isTokenA === 'boolean' ? formData.isTokenA : formData.isTokenA === 'true',
       });
-
-      console.log('Position creation result:', result);
 
       if (result) {
         setSuccess(`Position created successfully! Signature: ${result}`);
@@ -254,7 +245,19 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [connected, publicKey, validateForm, selectedPool, createPosition, formData, contextError, onSuccess, onError]);
+
+  if (!isClient) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 border border-gray-700/100 rounded-xl"
+      >
+        <div className="text-lg text-gray-600">Loading...</div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

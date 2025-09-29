@@ -43,15 +43,19 @@ interface AdjustPositionParams {
     removeAmount?: number;
 }
 
-const PositionContext = createContext<PositionContextType | null>(null) ;
+const PositionContext = createContext<PositionContextType | null>(null);
 
 export function PositionProvider({ children }: { children: ReactNode }) {
-    const { publicKey, connected, signAndSendTransaction } = useWallet();
     const [positions, setPositions] = useState<IDLMMPosition[]>([]);
     const [positionMetrics, setPositionMetrics] = useState<Map<string, IPositionMetrics>>(new Map());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedPool, setSelectedPool] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     // Initialize services
     const connection = useMemo(() => {
@@ -69,7 +73,6 @@ export function PositionProvider({ children }: { children: ReactNode }) {
         return new PositionManager(dlmmService);
     }, [dlmmService]);
     
-    // Initialize services
     const rebalancingStrategy = useMemo(() => {
         if (!dlmmService) return null;
         return new AutomationStrategy();
@@ -87,26 +90,24 @@ export function PositionProvider({ children }: { children: ReactNode }) {
     const [tokenPrices, setTokenPrices] = useState<Map<string, PriceData>>(new Map());
 
     const refreshPositions = useCallback(async () => {
-        console.log('=== refreshPositions called ===');
-        console.log('Services available:', { dlmmService: !!dlmmService, positionManager: !!positionManager });
-        console.log('Wallet state:', { connected, publicKey: publicKey?.toString() });
-        
+        if (!isClient) return;
+
+        const wallet = useWallet();
+        const { publicKey, connected } = wallet;
+
         try {
             setLoading(true);
             setError(null);
             
             if (!dlmmService || !positionManager) {
-                console.log('Services not ready, returning early');
                 setLoading(false);
                 return;
             }
             if (!connected || !publicKey) {
-                console.log('Wallet not connected, returning early');
                 setLoading(false);
                 return;
             }
             
-            // Use selected pool or create a mock position for demo purposes
             let pair = selectedPool;
             if (!pair) {
                 try {
@@ -124,7 +125,6 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             
             if (pair) {
                 try {
-                    console.log('Fetching positions for pool:', pair);
                     const positions = await dlmmService.getUserPositions({
                         payer: publicKey.toString(),
                         pair,
@@ -132,8 +132,6 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                     allUserPositions = positions || [];
                 } catch (err) {
                     console.error('Error fetching positions:', err);
-                    // For demo purposes, create a mock position if we recently created one
-                    console.log('Creating mock position for demo...');
                     allUserPositions = [{
                         address: 'Demo-Position-' + Date.now(),
                         pair: pair,
@@ -145,38 +143,35 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                     }];
                 }
             }
-            console.log('Total positions found across all pools:', allUserPositions);
-            console.log('Number of positions found:', allUserPositions.length);
+
             const metrics = new Map<string, IPositionMetrics>();
 
             for (const position of allUserPositions) {
                 try {
-                    console.log('Fetching metrics for position:', position.address.toString());
                     const positionMetrics = await positionManager.getPositionMetrics(position.address.toString());
                     if (positionMetrics) {
                         metrics.set(position.address.toString(), positionMetrics);
-                        console.log('Metrics fetched successfully for:', position.address.toString());
-                    } else {
-                        console.log('No metrics returned for:', position.address.toString());
                     }
                 } catch (err) {
                     console.error(`Failed to fetch metrics for position ${position.address.toString()}:`, err);
-                    // Continue with other positions even if one fails
                 }
             }
 
-            console.log('Setting positions to state:', allUserPositions);
             setPositions(allUserPositions);
             setPositionMetrics(metrics);
-            console.log('Positions and metrics set successfully');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch positions');
         } finally {
             setLoading(false);
         }
-    }, [dlmmService, positionManager]);
+    }, [dlmmService, positionManager, isClient]);
 
     const createPosition = useCallback(async (params: CreatePositionParams): Promise<string | null> => {
+        if (!isClient) return null;
+
+        const wallet = useWallet();
+        const { publicKey, connected, signAndSendTransaction } = wallet;
+
         try {
             setLoading(true);
             setError(null);
@@ -196,7 +191,6 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 return null;
             }
 
-            console.log('Creating position with wallet:', publicKey.toString());
             const position = await dlmmService.createPosition({
                 selectedPool: selectedPool!,
                 tokenA: params.tokenA,
@@ -216,17 +210,20 @@ export function PositionProvider({ children }: { children: ReactNode }) {
             await refreshPositions();
             return position.address.toString();
         } catch (err) {
-            console.error('PositionContext createPosition error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Failed to create position';
-            console.error('Error message set:', errorMessage);
             setError(errorMessage);
             return null;
         } finally {
             setLoading(false);
         }
-    }, [dlmmService, refreshPositions]);
+    }, [dlmmService, refreshPositions, isClient]);
 
     const adjustPosition = useCallback(async (params: AdjustPositionParams): Promise<boolean> => {
+        if (!isClient) return false;
+
+        const wallet = useWallet();
+        const { publicKey, signAndSendTransaction } = wallet;
+
         try {
             setLoading(true);
             setError(null);
@@ -266,11 +263,36 @@ export function PositionProvider({ children }: { children: ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [dlmmService, positions, refreshPositions]);
+    }, [dlmmService, positions, refreshPositions, isClient]);
 
     useEffect(() => {
-        refreshPositions();
-    }, [refreshPositions]);
+        if (isClient) {
+            refreshPositions();
+        }
+    }, [refreshPositions, isClient]);
+
+    if (!isClient) {
+        return (
+            <PositionContext.Provider
+                value={{
+                    positions: [],
+                    positionMetrics: new Map(),
+                    loading: true,
+                    error: null,
+                    selectedPool: null,
+                    setSelectedPool: () => {},
+                    refreshPositions: async () => {},
+                    createPosition: async () => null,
+                    adjustPosition: async () => false,
+                    automationManager,
+                    priceFeedService,
+                    tokenPrices,
+                }}
+            >
+                {children}
+            </PositionContext.Provider>
+        );
+    }
 
     return (
         <PositionContext.Provider

@@ -1,9 +1,18 @@
+import { Commitment } from '@solana/web3.js';
+
 // Network Configuration
 export const SOLANA_NETWORK = 'devnet' as const;
 export const SOLANA_RPC_ENDPOINT = 'https://api.devnet.solana.com';
 
 // Saros DLMM Configuration
 export const SAROS_PROGRAM_ID = '1qbkdrr3z4ryLA7pZykqxvxWPoeifcVKo6ZG9CfkvVE';
+
+// Connection Configuration
+export const CONNECTION_CONFIG = {
+  commitment: 'confirmed' as Commitment,
+  confirmTransactionInitialTimeout: 60000,
+  wsEndpoint: 'wss://api.devnet.solana.com',
+};
 
 // Pool Configuration
 export const DEFAULT_BIN_STEP = 100; // Price change % between bins
