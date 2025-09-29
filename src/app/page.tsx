@@ -37,6 +37,12 @@ export default function Home() {
               >
                 Setup & Testing
               </a>
+              <a
+                href="/docs"
+                className="btn-secondary text-center text-lg px-6 py-2"
+              >
+                Detailed Docs
+              </a>
             </div>
           </div>
         </motion.div>

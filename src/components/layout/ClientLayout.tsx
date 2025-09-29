@@ -40,6 +40,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                   <nav className="hidden md:flex items-center space-x-8">
                     <a href="/dashboard" className="nav-link">Dashboard</a>
                     <a href="/setup" className="nav-link">Setup</a>
+                    <a href="/docs" className="nav-link">Docs</a>
                   </nav>
                   <div className="flex items-center space-x-4">
                     <NetworkStatus />
