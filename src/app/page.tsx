@@ -27,13 +27,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
                 href="/dashboard"
-                className="btn-primary text-center text-lg px-8 py-4"
+                className="btn-primary text-center text-lg px-6 py-2"
               >
                 Launch Dashboard
               </a>
               <a
                 href="/setup"
-                className="btn-secondary text-center text-lg px-8 py-4"
+                className="btn-secondary text-center text-lg px-6 py-2"
               >
                 Setup & Testing
               </a>

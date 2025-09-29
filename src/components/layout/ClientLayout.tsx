@@ -1,11 +1,13 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode } from 'react';  
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { WalletButton } from '@/components/common/WalletButton';
 import { NetworkStatus } from '@/components/common/NetworkStatus';
+import { useRouter } from 'next/navigation';
 
 export function ClientLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
   return (
     <ClientProviders>
       {/* Background Video - Local rust.mp4 */}
@@ -28,7 +30,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
             <div className="header__background"></div>
             <div className="relative z-10 px-6 lg:px-8 py-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => router.push('/')}>
                   <h1 className="text-xl text-gray-800 tracking-tight" style={{ fontFamily: 'CustomFont', fontWeight: 900 }}>
                     Saros
                   </h1>
