@@ -412,7 +412,7 @@ export function DocsContent() {
           <div className="relative z-10 p-8">
             <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
               <h3 className="text-lg text-gray-800 mb-3" style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>
-                💡 Built for the Ecosystem
+                 Built for the Ecosystem
               </h3>
               <p className="text-gray-700">
                 This project serves as a foundation that other developers can learn from and build upon. All code is open-source, 

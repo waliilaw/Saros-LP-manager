@@ -76,6 +76,26 @@ export default function Home() {
               <p className="text-lg leading-relaxed">
                 Perfect for both beginners who want a simple dashboard and advanced traders who need sophisticated automation tools.
               </p>
+
+              {/* Video Demo Section */}
+              <div className="mt-8">
+                <h3 className="text-xl text-gray-800 mb-4" style={{ fontFamily: 'CustomFont', fontWeight: 700 }}>
+                  Watch Demo Video
+                </h3>
+                <div className="relative rounded-2xl overflow-hidden border-2 border-gray-300 bg-gray-100" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full"
+                    src="https://www.youtube.com/embed/bS9R6aCVEzw"
+                    title="Saros LP Manager Demo"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+                <p className="text-sm text-gray-600 mt-2 text-center">
+                  See how the LP Manager works in action - from creating positions to monitoring analytics
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
