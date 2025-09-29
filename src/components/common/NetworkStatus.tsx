@@ -1,12 +1,33 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useWallet } from '@/context/WalletContext';
 import { SOLANA_NETWORK } from '@/lib/saros/config';
 import { useState, useEffect } from 'react';
 
+// Use dynamic import to avoid SSR issues
+const useConnectionHook = () => {
+  const [connection, setConnection] = useState<any>(null);
+  
+  useEffect(() => {
+    // Only load connection on client side
+    if (typeof window !== 'undefined') {
+      import('@/context/WalletContext').then(({ useWallet }) => {
+        try {
+          const walletContext = useWallet();
+          setConnection(walletContext.connection);
+        } catch {
+          // Context not available, use null
+          setConnection(null);
+        }
+      });
+    }
+  }, []);
+  
+  return connection;
+};
+
 export const NetworkStatus = () => {
-  const { connection } = useWallet();
+  const connection = useConnectionHook();
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [latency, setLatency] = useState<number>(0);
   const [mounted, setMounted] = useState(false);

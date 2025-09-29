@@ -1,112 +1,218 @@
-# API Documentation
+# Saros LP Manager - API Documentation
 
 ## Core Services
 
-### SarosDLMMService
+### DLMM Service
 
-The main service for interacting with Saros DLMM protocol.
+The DLMM Service provides the core functionality for interacting with Saros DLMM pools.
 
-#### Methods
-
-##### `createPosition`
-Creates a new liquidity position.
+#### Position Management
 
 ```typescript
-async function createPosition(params: {
+interface CreatePositionParams {
+  selectedPool: string;
   tokenA: string;
   tokenB: string;
   lowerBinId: number;
   upperBinId: number;
   amount: number;
   isTokenA: boolean;
-}): Promise<Position>
-```
+  payer: string;
+  signAndSendTransaction: (tx: Transaction) => Promise<string>;
+}
 
-##### `adjustPosition`
-Adjusts an existing position's parameters.
-
-```typescript
-async function adjustPosition(params: {
-  position: Position;
+interface AdjustPositionParams {
+  position: {
+    positionMint?: string;
+    address?: string;
+    pair: string;
+    tokenA?: string;
+    tokenB?: string;
+    lowerBinId?: number;
+    upperBinId?: number;
+  };
   newLowerBinId?: number;
   newUpperBinId?: number;
   addAmount?: number;
   removeAmount?: number;
-}): Promise<boolean>
-```
-
-##### `getPosition`
-Retrieves position details.
-
-```typescript
-async function getPosition(positionId: string): Promise<Position>
-```
-
-### PositionManager
-
-Manages position operations and state.
-
-#### Methods
-
-##### `getPositions`
-Retrieves all positions for the current user.
-
-```typescript
-async function getPositions(): Promise<Position[]>
-```
-
-##### `getMetrics`
-Calculates position metrics.
-
-```typescript
-async function getMetrics(positionId: string): Promise<PositionMetrics>
-```
-
-### AutomationManager
-
-Manages automated strategies.
-
-#### Methods
-
-##### `registerStrategy`
-Registers a new automation strategy.
-
-```typescript
-function registerStrategy(strategy: IRebalancingStrategy): void
-```
-
-##### `activateStrategy`
-Activates a strategy for a position.
-
-```typescript
-async function activateStrategy(
-  positionId: string,
-  strategyName: string,
-  params: RebalanceParams
-): Promise<boolean>
-```
-
-## Data Types
-
-### Position
-
-```typescript
-interface Position {
-  address: PublicKey;
-  pool: PublicKey;
-  owner: PublicKey;
-  liquidity: number;
-  lowerBinId: number;
-  upperBinId: number;
-  lastUpdateTime: number;
-  healthFactor: number;
+  payer: string;
+  signAndSendTransaction: (tx: Transaction) => Promise<string>;
 }
 ```
 
-### PositionMetrics
+#### Methods
 
 ```typescript
-interface PositionMetrics {
+class SarosDLMMService {
+  async createPosition(params: CreatePositionParams): Promise<{
+    signature: string;
+    positionMint: string;
+    address: PublicKey;
+  }>;
+
+  async adjustPosition(params: AdjustPositionParams): Promise<{
+    success: boolean;
+    signatures: string[];
+  }>;
+
+  async getPosition(positionId: string): Promise<any>;
+  
+  async getPoolMetadata(poolId: string): Promise<any>;
+  
+  async getUserPositions(params: { payer: string; pair: string }): Promise<any[]>;
+  
+  async fetchPoolAddresses(): Promise<string[]>;
+  
+  async getQuote(params: {
+    pair: string;
+    tokenBase: string;
+    tokenQuote: string;
+    amount: bigint;
+    swapForY: boolean;
+    isExactInput: boolean;
+    tokenBaseDecimal: number;
+    tokenQuoteDecimal: number;
+    slippage: number;
+  }): Promise<any>;
+}
+```
+
+### Price Feed Service
+
+Real-time price monitoring and historical data.
+
+```typescript
+interface PriceData {
+  price: number;
+  timestamp: number;
+  volume24h: number;
+  change24h: number;
+  bid: number;
+  ask: number;
+  binId: number;
+  binStep: number;
+  liquidity: number;
+}
+
+class PriceFeedService {
+  async connect(): Promise<void>;
+  
+  async subscribe(poolAddress: string, callback: (price: PriceData) => void): Promise<() => void>;
+  
+  async getPrice(poolAddress: string): Promise<PriceData | null>;
+  
+  async getHistoricalPrices(
+    poolAddress: string,
+    startTime: number,
+    endTime: number,
+    interval: '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+  ): Promise<TimeSeriesData[]>;
+  
+  async getAggregatedPrice(poolAddress: string): Promise<number | null>;
+  
+  disconnect(): void;
+}
+```
+
+### Limit Orders Service
+
+Advanced order types using DLMM bins.
+
+```typescript
+interface LimitOrderParams {
+  poolAddress: string;
+  tokenA: string;
+  tokenB: string;
+  amount: number;
+  targetPrice: number;
+  isTokenA: boolean;
+  isBuy: boolean;
+  payer: string;
+  signAndSendTransaction: (tx: Transaction) => Promise<string>;
+}
+
+interface LimitOrder {
+  id: string;
+  poolAddress: string;
+  tokenA: string;
+  tokenB: string;
+  amount: number;
+  targetPrice: number;
+  isTokenA: boolean;
+  isBuy: boolean;
+  binId: number;
+  status: 'pending' | 'filled' | 'cancelled';
+  createdAt: number;
+  updatedAt: number;
+}
+
+class LimitOrderService {
+  async createLimitOrder(params: LimitOrderParams): Promise<LimitOrder>;
+  
+  async cancelLimitOrder(params: {
+    orderId: string;
+    payer: string;
+    signAndSendTransaction: (tx: Transaction) => Promise<string>;
+  }): Promise<boolean>;
+  
+  async getLimitOrder(orderId: string): Promise<LimitOrder | null>;
+  
+  async getUserLimitOrders(params: {
+    payer: string;
+    poolAddress: string;
+  }): Promise<LimitOrder[]>;
+}
+```
+
+### Rebalancing Service
+
+Automated position management with multiple strategies.
+
+```typescript
+interface RebalanceStrategy {
+  type: 'symmetric' | 'dynamic' | 'concentrated';
+  targetUtilization: number;
+  rebalanceThreshold: number;
+  minBinSpread: number;
+  maxBinSpread: number;
+  concentrationFactor?: number;
+}
+
+interface RebalanceParams {
+  poolAddress: string;
+  positionId: string;
+  strategy: RebalanceStrategy;
+  payer: string;
+  signAndSendTransaction: (tx: Transaction) => Promise<string>;
+}
+
+class RebalancingService {
+  async checkRebalanceNeeded(params: {
+    poolAddress: string;
+    positionId: string;
+    strategy: RebalanceStrategy;
+  }): Promise<{
+    needed: boolean;
+    reason?: string;
+    suggestedBins?: { lower: number; upper: number };
+  }>;
+
+  async rebalancePosition(params: RebalanceParams): Promise<{
+    success: boolean;
+    newLowerBinId: number;
+    newUpperBinId: number;
+    signature?: string;
+    error?: string;
+  }>;
+}
+```
+
+### Position Metrics Service
+
+Real-time position analytics and health monitoring.
+
+```typescript
+interface IPositionMetrics {
   feesEarned: number;
   volume24h: number;
   apr: number;
@@ -118,170 +224,167 @@ interface PositionMetrics {
   utilization: number;
   healthScore: number;
 }
+
+class PositionMetricsService {
+  static calculateImpermanentLoss(
+    initialPrice: number,
+    currentPrice: number,
+    positionValueAtEntry: number
+  ): number;
+
+  static async calculatePositionValue(
+    position: IDLMMPosition,
+    currentPriceX: number
+  ): Promise<number>;
+
+  static async calculateFeesEarned(
+    position: IDLMMPosition,
+    currentPriceX: number,
+    timeframe: number = 24
+  ): Promise<{ total: number; hourly: number }>;
+
+  static async calculateUtilization(
+    position: IDLMMPosition,
+    poolAddress: string
+  ): Promise<number>;
+
+  static async calculateHealthScore(
+    position: IDLMMPosition,
+    poolAddress: string,
+    currentPrice: number
+  ): Promise<number>;
+
+  static async getMetrics(
+    position: IDLMMPosition,
+    poolAddress: string,
+    currentPrice: number,
+    timeframe: number = 24
+  ): Promise<IPositionMetrics>;
+}
 ```
 
-### Strategy
+## React Components
+
+### Position Management
 
 ```typescript
-interface IRebalancingStrategy {
-  name: string;
-  description: string;
-  evaluate(params: RebalanceParams): Promise<boolean>;
-  execute(params: RebalanceParams): Promise<boolean>;
-}
+<CreatePositionForm
+  onSuccess?: (order: LimitOrder) => void;
+  onError?: (error: Error) => void;
+/>
+
+<LimitOrderForm
+  poolAddress: string;
+  tokenA: string;
+  tokenB: string;
+  currentPrice: number;
+  onSuccess?: (order: LimitOrder) => void;
+  onError?: (error: Error) => void;
+/>
+
+<RebalanceStrategyForm
+  poolAddress: string;
+  positionId: string;
+  onSuccess?: (result: RebalanceResult) => void;
+  onError?: (error: Error) => void;
+/>
+```
+
+### Analytics
+
+```typescript
+<PerformanceChart
+  data: TimeSeriesData[];
+  title: string;
+  yAxisFormat: (value: number) => string;
+/>
+
+<AnalyticsDashboard />
+
+<PositionHealthPanel
+  position: IDLMMPosition;
+  metrics: IPositionMetrics;
+/>
+```
+
+## Context Providers
+
+```typescript
+<PositionProvider>
+  {/* Provides position management context */}
+</PositionProvider>
+
+<WalletProvider>
+  {/* Provides wallet connection context */}
+</WalletProvider>
+
+<SSRSafeWalletProvider>
+  {/* SSR-safe wallet provider */}
+</SSRSafeWalletProvider>
+```
+
+## Hooks
+
+```typescript
+const { positions, positionMetrics, loading, error } = usePositions();
+const { publicKey, connected, signAndSendTransaction } = useWallet();
+const { prices, subscribe } = usePriceFeed(poolAddress);
+const { metrics } = usePositionMetrics(position);
 ```
 
 ## Error Handling
 
-### Error Types
-
-```typescript
-enum ErrorCode {
-  INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
-  INVALID_PARAMETERS = 'INVALID_PARAMETERS',
-  POSITION_NOT_FOUND = 'POSITION_NOT_FOUND',
-  TRANSACTION_FAILED = 'TRANSACTION_FAILED',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-}
-
-interface ErrorResponse {
-  code: ErrorCode;
-  message: string;
-  details?: any;
-}
-```
-
-### Error Examples
-
-```typescript
-// Invalid parameters
-{
-  code: 'INVALID_PARAMETERS',
-  message: 'Invalid bin range specified',
-  details: {
-    lowerBinId: 100,
-    upperBinId: 90,
-    reason: 'Lower bin ID must be less than upper bin ID'
-  }
-}
-
-// Transaction failure
-{
-  code: 'TRANSACTION_FAILED',
-  message: 'Failed to execute transaction',
-  details: {
-    txHash: '...',
-    error: 'Insufficient funds for gas'
-  }
-}
-```
-
-## Rate Limits
-
-| Endpoint | Rate Limit | Window |
-|----------|------------|--------|
-| Position Creation | 10 | 1 minute |
-| Position Adjustment | 20 | 1 minute |
-| Position Queries | 100 | 1 minute |
-| Price Feeds | 1000 | 1 minute |
-
-## WebSocket API
-
-### Price Feed Subscription
-
-```typescript
-// Subscribe to price updates
-ws.send(JSON.stringify({
-  type: 'SUBSCRIBE',
-  channel: 'PRICE_FEED',
-  symbols: ['SOL/USDC', 'ETH/USDC']
-}));
-
-// Price update message
-{
-  type: 'PRICE_UPDATE',
-  symbol: 'SOL/USDC',
-  price: 100.50,
-  timestamp: 1632150400000
-}
-```
-
-### Position Updates
-
-```typescript
-// Subscribe to position updates
-ws.send(JSON.stringify({
-  type: 'SUBSCRIBE',
-  channel: 'POSITION_UPDATES',
-  positions: ['position1', 'position2']
-}));
-
-// Position update message
-{
-  type: 'POSITION_UPDATE',
-  positionId: 'position1',
-  metrics: {
-    feesEarned: 100,
-    volume24h: 50000,
-    apr: 0.15
-  },
-  timestamp: 1632150400000
-}
-```
-
-## Examples
-
-### Creating a Position
-
-```typescript
-const position = await dlmmService.createPosition({
-  tokenA: 'SOL',
-  tokenB: 'USDC',
-  lowerBinId: 90,
-  upperBinId: 110,
-  amount: 1000,
-  isTokenA: true
-});
-
-console.log('Position created:', position.address.toString());
-```
-
-### Implementing a Custom Strategy
-
-```typescript
-class CustomStrategy implements IRebalancingStrategy {
-  name = 'Custom Range Strategy';
-  description = 'Adjusts range based on custom logic';
-
-  async evaluate(params: RebalanceParams): Promise<boolean> {
-    const { position, currentPrice } = params;
-    const priceDeviation = Math.abs(currentPrice - position.targetPrice);
-    return priceDeviation > params.rebalanceThreshold;
-  }
-
-  async execute(params: RebalanceParams): Promise<boolean> {
-    // Custom rebalancing logic
-    return true;
-  }
-}
-```
-
-### Error Handling Example
+All services implement comprehensive error handling:
 
 ```typescript
 try {
-  await dlmmService.adjustPosition({
-    position,
-    newLowerBinId: 95,
-    newUpperBinId: 105
-  });
+  // Operation
 } catch (error) {
-  if (error.code === ErrorCode.INSUFFICIENT_FUNDS) {
-    // Handle insufficient funds
-  } else if (error.code === ErrorCode.INVALID_PARAMETERS) {
-    // Handle invalid parameters
-  } else {
-    // Handle other errors
-  }
+  throw new Error(`Operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 }
 ```
+
+## Type Safety
+
+The application uses TypeScript throughout with proper type definitions:
+
+```typescript
+interface PoolMetadata {
+  binStep: number;
+  activeId: number;
+  volume24h?: number;
+  priceChange24h?: number;
+  [key: string]: any;
+}
+
+interface Bin {
+  liquidity: number;
+  amountX: number;
+  amountY: number;
+  volume24h?: number;
+  fees?: number;
+  [key: string]: any;
+}
+```
+
+## Best Practices
+
+1. **Error Handling**
+   - All operations include proper error handling
+   - User-friendly error messages
+   - Error recovery mechanisms
+
+2. **Type Safety**
+   - Comprehensive TypeScript types
+   - Runtime type checking
+   - Type guards where needed
+
+3. **Performance**
+   - Efficient data caching
+   - Batch operations
+   - Optimized re-renders
+
+4. **Security**
+   - Transaction validation
+   - Input sanitization
+   - Proper error boundaries

@@ -1,11 +1,44 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useWallet } from '@/context/WalletContext';
 import { useEffect, useState } from 'react';
 
+// Use dynamic import to avoid SSR issues
+const useWalletHook = () => {
+  const [wallet, setWallet] = useState<any>(null);
+  
+  useEffect(() => {
+    // Only load wallet on client side
+    if (typeof window !== 'undefined') {
+      import('@/context/WalletContext').then(({ useWallet }) => {
+        try {
+          const walletContext = useWallet();
+          setWallet(walletContext);
+        } catch {
+          // Context not available, use fallback
+          setWallet({
+            publicKey: null,
+            connected: false,
+            connecting: false,
+            connect: async () => {},
+            disconnect: async () => {}
+          });
+        }
+      });
+    }
+  }, []);
+  
+  return wallet || {
+    publicKey: null,
+    connected: false,
+    connecting: false,
+    connect: async () => {},
+    disconnect: async () => {}
+  };
+};
+
 export const WalletButton = () => {
-  const { publicKey, connected, connecting, connect, disconnect } = useWallet();
+  const { publicKey, connected, connecting, connect, disconnect } = useWalletHook();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

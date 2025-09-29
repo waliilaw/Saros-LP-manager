@@ -2,13 +2,15 @@ import { PublicKey } from '@solana/web3.js';
 
 export interface IDLMMPosition {
     address: PublicKey;
-    pool: PublicKey;
-    owner: PublicKey;
+    pair: string;
+    tokenA?: string;
+    tokenB?: string;
     liquidity: number;
     lowerBinId: number;
     upperBinId: number;
     lastUpdateTime: number;
     healthFactor: number;
+    positionMint?: string;
 }
 
 export interface IPositionMetrics {

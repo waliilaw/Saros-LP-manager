@@ -241,8 +241,12 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 throw new Error('Position not found');
             }
 
-            const success = await dlmmService.adjustPosition({
-                position,
+            const result = await dlmmService.adjustPosition({
+                position: {
+                    ...position,
+                    address: position.address.toString(),
+                    pair: position.pair.toString(),
+                },
                 newLowerBinId: params.newLowerBinId,
                 newUpperBinId: params.newUpperBinId,
                 addAmount: params.addAmount,
@@ -251,11 +255,11 @@ export function PositionProvider({ children }: { children: ReactNode }) {
                 signAndSendTransaction,
             });
 
-            if (success) {
+            if (result.success) {
                 await refreshPositions();
             }
 
-            return success;
+            return result.success;
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to adjust position');
             return false;

@@ -1,298 +1,219 @@
-# Technical Documentation
+# Saros LP Manager - Technical Documentation
 
 ## Architecture Overview
 
-### Core Services
+The Saros LP Manager is a sophisticated liquidity management application built on top of the Saros DLMM SDK. It provides advanced features for liquidity providers to manage their positions effectively.
 
-\`\`\`mermaid
-classDiagram
-    class SarosDLMMService {
-        +createPosition(params)
-        +adjustPosition(params)
-        +getPosition(id)
-        +getPool(id)
-    }
-    
-    class PositionManager {
-        +getPositions()
-        +getMetrics()
-        +updatePosition()
-        +monitorHealth()
-    }
-    
-    class AutomationManager {
-        +strategies: Map
-        +registerStrategy()
-        +executeStrategy()
-        +monitorPositions()
-    }
-    
-    class PriceFeedService {
-        +getPrice()
-        +subscribeToUpdates()
-        +getHistoricalPrices()
-    }
-    
-    PositionManager --> SarosDLMMService
-    AutomationManager --> PositionManager
-    PositionManager --> PriceFeedService
-\`\`\`
+### Core Components
 
-### State Management
+1. **DLMM Service (`src/lib/saros/dlmm-service.ts`)**
+   - Primary interface to the Saros DLMM SDK
+   - Handles position creation, adjustment, and management
+   - Implements proper error handling and type safety
+   - Manages transaction building and signing
 
-\`\`\`mermaid
-flowchart TD
-    A[PositionContext] --> B[Positions State]
-    A --> C[Metrics State]
-    A --> D[Loading State]
-    A --> E[Error State]
-    B --> F[Position List]
-    B --> G[Selected Position]
-    C --> H[Performance Metrics]
-    C --> I[Health Metrics]
-\`\`\`
+2. **Price Feed Service (`src/lib/saros/price-feed/service.ts`)**
+   - Real-time price monitoring using DLMM bins
+   - Calculates VWAP (Volume-Weighted Average Price)
+   - Provides historical price data
+   - Implements efficient caching
 
-### Data Flow
-
-\`\`\`mermaid
-sequenceDiagram
-    participant Client
-    participant Context
-    participant Manager
-    participant Service
-    participant Blockchain
-
-    Client->>Context: Request Action
-    Context->>Manager: Process Request
-    Manager->>Service: Execute Operation
-    Service->>Blockchain: Submit Transaction
-    Blockchain-->>Service: Confirm
-    Service-->>Manager: Update State
-    Manager-->>Context: Notify Change
-    Context-->>Client: Render Update
-\`\`\`
-
-## Core Components
-
-### Position Management
-
-The position management system consists of several key components:
-
-1. **PositionManager**
-   - Handles position creation and updates
-   - Manages position state
+3. **Position Metrics Service (`src/lib/saros/position-metrics.ts`)**
+   - Real-time position analytics
+   - Calculates impermanent loss
    - Monitors position health
-   - Calculates metrics
+   - Tracks fees and returns
 
-2. **DLMM Service**
-   - Interfaces with Saros SDK
-   - Handles blockchain transactions
-   - Manages pool interactions
-   - Processes position adjustments
+4. **Rebalancing Service (`src/lib/saros/rebalancing/service.ts`)**
+   - Multiple rebalancing strategies:
+     - Symmetric: Equal distribution around active bin
+     - Dynamic: Adjusts based on volatility
+     - Concentrated: Focuses liquidity near active bin
+   - Automated position adjustment
+   - Market volatility monitoring
 
-### Automation System
+5. **Limit Orders Service (`src/lib/saros/limit-orders/service.ts`)**
+   - Implements limit orders using DLMM bins
+   - Single-bin position management
+   - Order tracking and execution
 
-The automation system provides:
+### Advanced Features
 
-1. **Strategy Engine**
-   - Dynamic range adjustment
-   - Volatility-based rebalancing
-   - Custom strategy support
-   - Performance tracking
+#### 1. Limit Orders
+- Uses single-bin positions for limit orders
+- Automatically tracks order status
+- Supports both buy and sell orders
+- Efficient order cancellation
 
-2. **Monitoring System**
-   - Real-time price monitoring
-   - Health check system
-   - Alert generation
-   - Performance metrics
-
-## Performance Optimizations
-
-### Component Loading
-
-```typescript
-// Dynamic imports for heavy components
-const DynamicChart = dynamic(() => import('@/components/Chart'), {
-  loading: () => <LoadingPlaceholder />,
-  ssr: false
-});
-```
-
-### State Management
-
-```typescript
-// Optimized context updates
-const metrics = useMemo(() => {
-  return calculateMetrics(positions);
-}, [positions]);
-
-// Efficient data structures
-const positionMap = new Map(positions.map(p => [p.id, p]));
-```
-
-### Request Caching
-
-```typescript
-// Request cache implementation
-const cachedData = await requestCache.get(
-  'key',
-  fetchFunction,
-  { ttl: 300, staleWhileRevalidate: 60 }
-);
-```
-
-## Security Considerations
-
-### Transaction Signing
-
-```typescript
-// Transaction signing validation
-async function validateAndSignTransaction(tx: Transaction): Promise<void> {
-  if (!wallet.connected) throw new Error('Wallet not connected');
-  if (!tx.feePayer) throw new Error('Fee payer not set');
-  
-  await wallet.signTransaction(tx);
-}
-```
-
-### Input Validation
-
-```typescript
-// Position parameters validation
-function validatePositionParams(params: PositionParams): void {
-  if (params.amount <= 0) throw new Error('Invalid amount');
-  if (params.lowerBinId >= params.upperBinId) {
-    throw new Error('Invalid bin range');
+#### 2. Automated Rebalancing
+- Multiple strategies:
+  ```typescript
+  export interface RebalanceStrategy {
+    type: 'symmetric' | 'dynamic' | 'concentrated';
+    targetUtilization: number;
+    rebalanceThreshold: number;
+    minBinSpread: number;
+    maxBinSpread: number;
+    concentrationFactor?: number;
   }
-}
-```
+  ```
+- Real-time market monitoring
+- Volatility-based adjustments
+- Gas-efficient rebalancing
+
+#### 3. Position Health Monitoring
+- Real-time health score calculation:
+  ```typescript
+  healthScore = (
+    deviationScore * 0.4 +  // Distance from active bin
+    coverageScore * 0.3 +   // Price range coverage
+    liquidityWeight * 0.3    // Liquidity distribution
+  );
+  ```
+- Multiple health factors:
+  - Bin deviation
+  - Price range coverage
+  - Liquidity distribution
+  - Volume utilization
+
+### SDK Integration
+
+The application uses multiple Saros SDKs:
+1. `@saros-finance/dlmm-sdk`: Core DLMM functionality
+2. `@saros-finance/sdk`: Additional utilities
+
+Key SDK features utilized:
+- Position management
+- Liquidity provision
+- Price discovery
+- Pool metadata
+- Bin management
+
+### Performance Optimizations
+
+1. **Caching**
+   - Price data caching with TTL
+   - Pool metadata caching
+   - Position data caching
+
+2. **Batch Processing**
+   - Transaction batching for rebalancing
+   - Bulk position updates
+   - Efficient bin data fetching
+
+3. **Error Handling**
+   - Comprehensive error handling
+   - Transaction retry logic
+   - Fallback mechanisms
+
+### Security Considerations
+
+1. **Transaction Safety**
+   - All transactions are validated before sending
+   - Proper signature handling
+   - Transaction confirmation checks
+
+2. **Input Validation**
+   - Bin range validation
+   - Price validation
+   - Amount validation
+
+3. **Error Recovery**
+   - Transaction rollback support
+   - State recovery mechanisms
+   - Error reporting
+
+### Future Enhancements
+
+1. **Advanced Analytics**
+   - Portfolio optimization suggestions
+   - Risk analysis
+   - Performance predictions
+
+2. **Additional Features**
+   - Stop-loss orders
+   - Take-profit orders
+   - Advanced order types
+
+3. **Integration Possibilities**
+   - External price feeds
+   - Cross-chain support
+   - Additional DEX integrations
+
+## Development Setup
+
+1. **Prerequisites**
+   ```bash
+   node >= 18.0.0
+   npm >= 9.0.0
+   ```
+
+2. **Installation**
+   ```bash
+   npm install
+   ```
+
+3. **Development**
+   ```bash
+   npm run dev
+   ```
+
+4. **Testing**
+   ```bash
+   npm run test
+   npm run test:coverage
+   ```
+
+5. **Build**
+   ```bash
+   npm run build
+   ```
 
 ## Testing Strategy
 
-### Unit Tests
+1. **Unit Tests**
+   - Service layer testing
+   - Component testing
+   - Utility function testing
 
-```typescript
-describe('PositionManager', () => {
-  it('should calculate metrics correctly', () => {
-    const metrics = calculateMetrics(mockPositions);
-    expect(metrics.totalValue).toBe(expectedValue);
-  });
-});
-```
+2. **Integration Tests**
+   - SDK integration testing
+   - Service interaction testing
+   - State management testing
 
-### Integration Tests
+3. **End-to-End Tests**
+   - User flow testing
+   - Transaction testing
+   - Error handling testing
 
-```typescript
-describe('Automation System', () => {
-  it('should execute strategy successfully', async () => {
-    const result = await automationManager.executeStrategy(
-      mockPosition,
-      mockStrategy
-    );
-    expect(result.success).toBe(true);
-  });
-});
-```
+## Deployment
 
-## Error Handling
+The application is designed to be deployed on any modern hosting platform that supports Next.js applications. Key considerations:
 
-### Error Types
+1. **Environment Variables**
+   ```
+   SOLANA_RPC_ENDPOINT=
+   SAROS_PROGRAM_ID=
+   ```
 
-```typescript
-enum ErrorType {
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  TRANSACTION_ERROR = 'TRANSACTION_ERROR',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  POSITION_ERROR = 'POSITION_ERROR'
-}
+2. **Build Process**
+   ```bash
+   npm run build
+   ```
 
-class SarosError extends Error {
-  constructor(
-    public type: ErrorType,
-    message: string,
-    public details?: any
-  ) {
-    super(message);
-  }
-}
-```
+3. **Deployment Commands**
+   ```bash
+   npm run start
+   ```
 
-### Error Recovery
+## Contributing
 
-```typescript
-async function withErrorRecovery<T>(
-  operation: () => Promise<T>,
-  retries: number = 3
-): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    if (retries > 0 && isRecoverableError(error)) {
-      await delay(1000);
-      return withErrorRecovery(operation, retries - 1);
-    }
-    throw error;
-  }
-}
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests
+5. Submit a pull request
 
-## API Documentation
+## License
 
-### Position Management
-
-```typescript
-interface PositionAPI {
-  createPosition(params: CreatePositionParams): Promise<Position>;
-  adjustPosition(params: AdjustPositionParams): Promise<boolean>;
-  getPosition(id: string): Promise<Position>;
-  getPositions(): Promise<Position[]>;
-}
-```
-
-### Automation API
-
-```typescript
-interface AutomationAPI {
-  registerStrategy(strategy: Strategy): void;
-  activateStrategy(positionId: string, strategyId: string): Promise<boolean>;
-  deactivateStrategy(positionId: string): void;
-  getActiveStrategies(): Strategy[];
-}
-```
-
-## Deployment Guide
-
-### Environment Setup
-
-```bash
-# Production environment variables
-NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta
-NEXT_PUBLIC_SAROS_PROGRAM_ID=your_program_id
-NEXT_PUBLIC_RPC_ENDPOINT=your_rpc_endpoint
-```
-
-### Build Process
-
-```bash
-# Production build
-npm run build
-
-# Deployment
-npm run deploy
-```
-
-### Monitoring
-
-```typescript
-// Performance monitoring
-const metrics = {
-  renderTime: performance.now() - startTime,
-  memoryUsage: performance.memory?.usedJSHeapSize,
-  interactionTime: endTime - startTime
-};
-
-// Log metrics in production
-if (process.env.NODE_ENV === 'production') {
-  logMetricsToMonitoringService(metrics);
-}
-```
+MIT License - See LICENSE file for details

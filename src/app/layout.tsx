@@ -3,7 +3,6 @@
 
 import './globals.css';
 import { ClientProviders } from '@/components/providers/ClientProviders';
-import { ClientHeader } from '@/components/layout/ClientHeader';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,7 +27,28 @@ export default function RootLayout({
           </div>
           
           <div className="relative z-20 min-h-screen">
-            <ClientHeader />
+            {/* Simple header without wallet components */}
+            <header className="fixed top-4 left-0 w-full z-30 px-4">
+              <div className="relative max-w-7xl mx-auto">
+                <div className="header__background"></div>
+                <div className="relative z-10 px-6 lg:px-8 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <h1 className="text-xl text-gray-800 tracking-tight" style={{ fontFamily: 'CustomFont', fontWeight: 900 }}>
+                        Saros
+                      </h1>
+                      <span className="text-gray-800 text-sm" style={{ fontFamily: 'CustomFont', fontWeight: 200 }}>LP Manager</span>
+                    </div>
+                    <div className="flex items-center space-x-8">
+                      <nav className="hidden md:flex items-center space-x-8">
+                        <a href="/dashboard" className="nav-link">Dashboard</a>
+                        <a href="/setup" className="nav-link">Setup</a>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </header>
             
             {/* Add top padding to content to account for fixed header */}
             <div className="pt-20"></div>
