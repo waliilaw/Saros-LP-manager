@@ -85,7 +85,7 @@ export default function Home() {
                 <div className="relative rounded-2xl overflow-hidden border-2 border-gray-300 bg-gray-100" style={{ paddingBottom: '56.25%' }}>
                   <iframe
                     className="absolute top-0 left-0 w-full h-full"
-                    src="https://www.youtube.com/embed/bS9R6aCVEzw"
+                    src="https://www.youtube.com/embed/TlvZtlO3pHk?si=AFZA0OdfLlNGw9SZ"
                     title="Saros LP Manager Demo"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
