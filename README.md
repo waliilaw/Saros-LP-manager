@@ -1,4 +1,7 @@
+
 # Saros LP Manager
+
+<img width="1921" height="1081" alt="rwui9f8nciazv4bgopb5" src="https://github.com/user-attachments/assets/6d699b43-21ef-46f4-94d0-cd275f4c9bca" />
 
 A sophisticated liquidity management application built on top of the Saros DLMM SDK, providing advanced features for liquidity providers.
 
