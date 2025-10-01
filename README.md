@@ -53,7 +53,7 @@ A sophisticated liquidity management application built on top of the Saros DLMM 
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/waliilaww/saros-lp-manager.git
+git clone https://github.com/waliilaw/saros-lp-manager.git
 
 # Install dependencies
 cd saros-lp-manager
