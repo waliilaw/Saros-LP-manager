@@ -143,14 +143,11 @@ npm run test:watch
 4. Run tests
 5. Submit a pull request
 
-## License
-
-MIT License - See [LICENSE](LICENSE) file for details
 
 ## Support
 
 - [Documentation](docs/)
-- [Issue Tracker](https://github.com/yourusername/saros-lp-manager/issues)
+- [Issue Tracker](https://github.com/waliilaww/saros-lp-manager/issues)
 - [Discord Community](https://discord.gg/saros)
 
 ## Acknowledgments
