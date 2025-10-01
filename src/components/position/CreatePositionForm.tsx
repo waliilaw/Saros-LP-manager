@@ -94,21 +94,100 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
 
   const handleSelectPool = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pool = e.target.value;
+    console.log('🔍 Selected pool:', pool);
     setSelectedPool(pool); // Use the global setter
-    if (!pool || !dlmmService) return;
+    
+    if (!pool) {
+      console.log('❌ No pool selected');
+      return;
+    }
+    if (!dlmmService) {
+      console.log('❌ DLMM service not initialized');
+      return;
+    }
+
     try {
       setError(null);
+      console.log('📡 Fetching pool metadata for:', pool);
       const meta = await dlmmService.getPoolMetadata(pool);
-      if (meta?.baseMint && meta?.quoteMint) {
+      console.log('📦 Raw pool metadata:', meta);
+
+      if (!meta) {
+        console.error('❌ Pool metadata is null');
+        throw new Error('Failed to fetch pool metadata - received null');
+      }
+
+      // Log all potential token properties
+      console.log('🔑 Available token properties:', {
+        tokenX: meta.tokenX,
+        tokenY: meta.tokenY,
+        tokenMintX: meta.tokenMintX,
+        tokenMintY: meta.tokenMintY,
+        baseMint: meta.baseMint,
+        quoteMint: meta.quoteMint,
+        mintX: meta.mintX,
+        mintY: meta.mintY,
+        // Log raw object keys to see what's actually available
+        allKeys: Object.keys(meta)
+      });
+      
+      // Try different property names the SDK might use
+      const tokenX = meta?.tokenX || meta?.tokenMintX || meta?.baseMint || meta?.mintX;
+      const tokenY = meta?.tokenY || meta?.tokenMintY || meta?.quoteMint || meta?.mintY;
+      
+      console.log('🎯 Found token addresses:', { tokenX, tokenY });
+      
+      if (tokenX && tokenY) {
+        // Convert to string if they're PublicKey objects
+        const tokenAStr = typeof tokenX === 'string' ? tokenX : tokenX.toString();
+        const tokenBStr = typeof tokenY === 'string' ? tokenY : tokenY.toString();
+        
+        console.log('✅ Setting form data with tokens:', { tokenAStr, tokenBStr });
+        
         setFormData(prev => ({
           ...prev,
-          tokenA: meta.baseMint,
-          tokenB: meta.quoteMint,
+          tokenA: tokenAStr,
+          tokenB: tokenBStr,
         }));
+        setError(null);
+      } else {
+        console.warn('⚠️ Token addresses not found in metadata. Available data:', meta);
+        // Try to extract from raw data if available
+        if (meta.state && typeof meta.state === 'object') {
+          console.log('🔍 Checking pool state object:', meta.state);
+          const state = meta.state;
+          const stateTokenX = state.tokenX || state.token_x || state.base_mint;
+          const stateTokenY = state.tokenY || state.token_y || state.quote_mint;
+          
+          if (stateTokenX && stateTokenY) {
+            console.log('✅ Found tokens in state:', { stateTokenX, stateTokenY });
+            setFormData(prev => ({
+              ...prev,
+              tokenA: stateTokenX.toString(),
+              tokenB: stateTokenY.toString(),
+            }));
+            setError(null);
+            return;
+          }
+        }
+        
+        setError('Could not auto-fill token addresses. Please enter them manually. Check console for details.');
       }
-    } catch (err) {
-      console.error('Failed to fetch pool metadata', err);
-      setError('Failed to fetch selected pool info');
+    } catch (err: any) {
+      console.error('❌ Failed to fetch pool metadata:', err);
+      const errorMsg = err?.message || String(err);
+      
+      // Check for network/RPC errors
+      if (errorMsg.includes('503') || errorMsg.includes('Service unavailable')) {
+        console.error('🔴 RPC Endpoint Error (503):', {
+          endpoint: process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || 'default endpoint',
+          error: errorMsg
+        });
+        setError('⚠️ RPC endpoint unavailable (503 error). The public Solana RPC is down. Please use a reliable RPC provider like Helius. See RPC_SETUP.md for instructions.');
+      } else {
+        console.error('🔴 Other Error:', errorMsg);
+        setError('Failed to fetch pool metadata: ' + errorMsg);
+      }
     }
   }, [dlmmService, setSelectedPool]);
 
@@ -126,13 +205,26 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
       setQuoting(true);
       setError(null);
       const meta = await dlmmService.getPoolMetadata(selectedPool);
-      if (!meta?.baseMint || !meta?.quoteMint || !meta?.extra) {
-        throw new Error('Pool metadata incomplete');
+      
+      // Try different property names the SDK might use
+      const tokenX = meta?.tokenX || meta?.tokenMintX || meta?.baseMint || meta?.mintX;
+      const tokenY = meta?.tokenY || meta?.tokenMintY || meta?.quoteMint || meta?.mintY;
+      
+      if (!tokenX || !tokenY) {
+        throw new Error('Pool metadata incomplete - token addresses not found');
       }
-      const tokenBase = formData.isTokenA ? meta.baseMint : meta.quoteMint;
-      const tokenQuote = formData.isTokenA ? meta.quoteMint : meta.baseMint;
-      const tokenBaseDecimal = meta.extra.tokenBaseDecimal ?? 6;
-      const tokenQuoteDecimal = meta.extra.tokenQuoteDecimal ?? 6;
+      
+      // Convert to string if they're PublicKey objects
+      const tokenXStr = typeof tokenX === 'string' ? tokenX : tokenX.toString();
+      const tokenYStr = typeof tokenY === 'string' ? tokenY : tokenY.toString();
+      
+      const tokenBase = formData.isTokenA ? tokenXStr : tokenYStr;
+      const tokenQuote = formData.isTokenA ? tokenYStr : tokenXStr;
+      
+      // Get decimals from metadata, with fallback to 6
+      const tokenBaseDecimal = meta?.extra?.tokenBaseDecimal ?? meta?.tokenXDecimal ?? meta?.baseDecimal ?? 6;
+      const tokenQuoteDecimal = meta?.extra?.tokenQuoteDecimal ?? meta?.tokenYDecimal ?? meta?.quoteDecimal ?? 6;
+      
       const uiAmount = Number(formData.amount);
       const amount = BigInt(Math.floor(uiAmount * Math.pow(10, tokenBaseDecimal)));
       const res = await dlmmService.getQuote({
@@ -151,9 +243,14 @@ export const CreatePositionForm: React.FC<CreatePositionFormProps> = ({
         amountOut: (Number(res.amountOut) / Math.pow(10, tokenQuoteDecimal)).toString(),
         priceImpact: res.priceImpact,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Quote failed', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch quote');
+      const errorMsg = err?.message || String(err);
+      if (errorMsg.includes('503') || errorMsg.includes('Service unavailable')) {
+        setError('⚠️ RPC endpoint unavailable (503 error). The public Solana RPC is down. Please use a reliable RPC provider like Helius. See RPC_SETUP.md for instructions.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setQuoting(false);
     }

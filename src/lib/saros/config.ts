@@ -2,7 +2,13 @@ import { Commitment } from '@solana/web3.js';
 
 // Network Configuration
 export const SOLANA_NETWORK = 'devnet' as const;
-export const SOLANA_RPC_ENDPOINT = 'https://api.devnet.solana.com';
+
+// RPC Configuration - Use environment variable or fallback to public (often overloaded)
+// Public Solana RPCs are often rate-limited or unavailable
+// Get free RPC from: Helius, QuickNode, Alchemy, or Triton
+export const SOLANA_RPC_ENDPOINT = 
+  process.env.NEXT_PUBLIC_SOLANA_RPC_ENDPOINT || 
+  'https://api.devnet.solana.com';
 
 // Saros DLMM Configuration
 export const SAROS_PROGRAM_ID = '1qbkdrr3z4ryLA7pZykqxvxWPoeifcVKo6ZG9CfkvVE';
@@ -11,7 +17,7 @@ export const SAROS_PROGRAM_ID = '1qbkdrr3z4ryLA7pZykqxvxWPoeifcVKo6ZG9CfkvVE';
 export const CONNECTION_CONFIG = {
   commitment: 'confirmed' as Commitment,
   confirmTransactionInitialTimeout: 60000,
-  wsEndpoint: 'wss://api.devnet.solana.com',
+  wsEndpoint: process.env.NEXT_PUBLIC_SOLANA_WS_ENDPOINT || 'wss://api.devnet.solana.com',
 };
 
 // Pool Configuration

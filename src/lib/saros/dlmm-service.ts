@@ -246,10 +246,31 @@ export class SarosDLMMService {
 
   async getPoolMetadata(poolId: string): Promise<any> {
     try {
-      return await this.lb.fetchPoolMetadata(poolId);
+      console.log('🔄 Fetching pool metadata from SDK for pool:', poolId);
+      const metadata = await this.lb.fetchPoolMetadata(poolId);
+      console.log('📦 Raw SDK response:', metadata);
+      
+      if (!metadata) {
+        throw new Error('SDK returned null metadata');
+      }
+
+      // Try to parse the response if it's a string
+      if (typeof metadata === 'string') {
+        try {
+          const parsed = JSON.parse(metadata);
+          console.log('🔄 Parsed string metadata:', parsed);
+          return parsed;
+        } catch (e) {
+          console.log('⚠️ Failed to parse string metadata:', e);
+          return metadata;
+        }
+      }
+
+      return metadata;
     } catch (error) {
-      console.error('Failed to fetch pool metadata:', error);
-      return null;
+      console.error('❌ Failed to fetch pool metadata:', error);
+      // Re-throw the error to handle it in the component
+      throw error;
     }
   }
 

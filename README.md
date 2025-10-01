@@ -48,6 +48,7 @@ A sophisticated liquidity management application built on top of the Saros DLMM 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
 - A Solana wallet (e.g., Phantom)
+- **A reliable RPC endpoint** (see Configuration below)
 
 ### Installation
 ```bash
@@ -62,12 +63,19 @@ npm install
 npm run dev
 ```
 
-### Configuration
+### ⚠️ Configuration (IMPORTANT)
+
+**The public Solana RPC is often unavailable!** You'll see 503 errors and features won't work.
+
+**Solution**: Get a free RPC API key from [Helius](https://www.helius.dev/), [QuickNode](https://www.quicknode.com/), or [Alchemy](https://www.alchemy.com/).
+
 Create a `.env.local` file:
 ```env
-SOLANA_RPC_ENDPOINT=your_rpc_endpoint
-SAROS_PROGRAM_ID=your_program_id
+# Example with Helius (recommended - 100k requests/day free)
+NEXT_PUBLIC_SOLANA_RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=YOUR_API_KEY
 ```
+
+**📖 See [RPC_SETUP.md](RPC_SETUP.md) for detailed instructions.**
 
 ## Usage
 
